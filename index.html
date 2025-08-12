@@ -1,1 +1,305 @@
-a
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Hirundu & Aracné — Salento (iPhone tactile)</title>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<style>
+  html, body { height:100%; margin:0; background:#f6f1e1; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+  * { -webkit-tap-highlight-color: transparent; }
+
+  .wrap { display:flex; flex-direction:column; height:100%; }
+  header { padding:10px 14px; background:#efe0b9; border-bottom:2px solid #d5c28f; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  header h1 { margin:0; font-size:18px; }
+  .brand { font-weight:700; }
+
+  .game { position:relative; flex:1; overflow:hidden; }
+  canvas { width:100%; height:100%; display:block; background:#e2eef7; touch-action:none; }
+
+  .hud { position:absolute; left:10px; top:56px; background:rgba(255,248,220,.96); border:2px solid #c8b37a; border-radius:10px; padding:8px 10px; font-size:14px; z-index:10; }
+  .stars { display:flex; gap:4px; margin-top:4px; flex-wrap:wrap; }
+  .star { width:18px; height:18px; opacity:.95 }
+
+  /* Bulle BD d’Aracné */
+  .arachneBox {
+    position:absolute; display:none; align-items:flex-start; gap:8px;
+    z-index: 20; transform-origin: left bottom; transition: transform .15s ease, opacity .15s ease;
+  }
+  .arachneBox.show { display:flex; opacity:1; transform: scale(1); }
+  .arachneBox.hide { opacity:0; transform: scale(.95); }
+  .arachneBox img {
+    width:64px; height:64px; border-radius:12px; object-fit:cover;
+    box-shadow:0 6px 14px rgba(0,0,0,.15); background:#fff; border:2px solid #c8b37a;
+  }
+  .bdBubble {
+    max-width:min(320px, 56vw);
+    background:#fff; border:2px solid #c8b37a; border-radius:14px;
+    padding:10px 12px; box-shadow:0 8px 18px rgba(0,0,0,.15);
+    position:relative; font-size:14px; line-height:1.25;
+  }
+  .bdBubble:after {
+    content:""; position:absolute; left:-10px; bottom:10px;
+    border-width:10px; border-style:solid;
+    border-color:transparent #c8b37a transparent transparent;
+  }
+  .bdBubble:before {
+    content:""; position:absolute; left:-8px; bottom:12px;
+    border-width:8px; border-style:solid;
+    border-color:transparent #fff transparent transparent;
+  }
+  .bdTitle { font-weight:700; margin-bottom:4px; }
+
+  /* Contrôles tactiles */
+  .touch { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); display:none; gap:14px; align-items:center; z-index:11; } /* caché tant que pas démarré */
+  .dpad { display:grid; grid-template-columns: 70px 70px 70px; grid-template-rows: 70px 70px 70px; gap:12px; }
+  .btn { width:70px; height:70px; border-radius:14px; border:2px solid #c8b37a; background:#fff7de; display:flex; align-items:center; justify-content:center; user-select:none; touch-action:none; font-weight:800; font-size:22px; box-shadow:0 3px 0 #c8b37a; }
+  .btn:active { transform: translateY(1px); }
+
+  /* Overlay de démarrage (import images) */
+  .overlay { position:absolute; inset:0; background:rgba(246,241,225,.98); display:flex; align-items:center; justify-content:center; z-index:9999; }
+  .card { width:min(560px, 94vw); border:2px solid #c8b37a; border-radius:12px; background:#fffdf5; box-shadow:0 8px 20px rgba(0,0,0,.15); padding:16px; }
+  .card h2{ margin:0 0 10px 0; font-size:18px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin:8px 0; align-items:center; }
+  .picker { border:2px dashed #d2c398; border-radius:10px; padding:10px; flex:1; min-width:230px; background:#fff7de; }
+  .picker label { display:block; font-weight:700; margin-bottom:6px; }
+  .picker input { width:100%; }
+  .go { display:flex; justify-content:flex-end; gap:10px; margin-top:10px; }
+  .go button { border:1px solid #c8b37a; background:#ffe8a6; border-radius:10px; padding:10px 12px; font-weight:700; }
+
+  footer { padding:6px 12px; font-size:12px; background:#efe5c8; border-top:2px solid #d2c398; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Hirundu & Aracné — Salento</h1>
+    <div class="brand">H-I-R-U-N-D-U • Aracné</div>
+  </header>
+
+  <div class="game">
+    <!-- Overlay (si pas d’URL) -->
+    <div class="overlay" id="overlay">
+      <div class="card">
+        <h2>Charge tes visuels ou indique des URLs</h2>
+        <div class="row">
+          <div class="picker"><label>Carte du Salento</label><input type="file" id="mapFile" accept="image/*"></div>
+          <div class="picker"><label>Hirundu</label><input type="file" id="birdFile" accept="image/*"></div>
+          <div class="picker"><label>Aracné</label><input type="file" id="spiderFile" accept="image/*"></div>
+        </div>
+        <div class="go"><button id="start">Démarrer</button></div>
+        <div style="opacity:.75; margin-top:6px">Sinon, mets des URLs dans le code (MAP_URL, HIRUNDU_URL, ARACNE_URL) pour démarrer direct.</div>
+      </div>
+    </div>
+
+    <canvas id="c"></canvas>
+
+    <div class="hud">
+      <div>Étoiles : <span id="score">0</span>/10</div>
+      <div class="stars" id="stars"></div>
+    </div>
+
+    <!-- Bulle BD d’Aracné -->
+    <div class="arachneBox" id="arachneBox">
+      <img id="arachneAvatar" alt="Aracné">
+      <div class="bdBubble">
+        <div class="bdTitle" id="bdTitle">Aracné</div>
+        <div id="bdText"></div>
+      </div>
+    </div>
+
+    <!-- D-pad -->
+    <div class="touch" id="touch">
+      <div class="dpad">
+        <div></div> <div class="btn" data-dx="0" data-dy="-1">↑</div> <div></div>
+        <div class="btn" data-dx="-1" data-dy="0">←</div> <div></div> <div class="btn" data-dx="1" data-dy="0">→</div>
+        <div></div> <div class="btn" data-dx="0" data-dy="1">↓</div> <div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>iPhone tactile • 10 points • étoile de mer + bulle BD d’Aracné</footer>
+</div>
+
+<script>
+/* --- 1) METS TES URLs ICI (laisse "" si tu préfères importer) --- */
+const MAP_URL    = ""; // ex: "https://ton-site/carte.png"
+const HIRUNDU_URL= ""; // ex: "https://ton-site/hirundu.png"
+const ARACNE_URL = ""; // ex: "https://ton-site/arachne.png"
+
+/* --- DOM --- */
+const $overlay = document.getElementById('overlay');
+const $start   = document.getElementById('start');
+const $mapFile = document.getElementById('mapFile');
+const $birdFile= document.getElementById('birdFile');
+const $spiFile = document.getElementById('spiderFile');
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const $score = document.getElementById('score');
+const $stars = document.getElementById('stars');
+
+const araBox  = document.getElementById('arachneBox');
+const araImg  = document.getElementById('arachneAvatar');
+const bdTitle = document.getElementById('bdTitle');
+const bdText  = document.getElementById('bdText');
+
+/* --- Images --- */
+const imgMap   = new Image();
+const imgBird  = new Image();
+const imgSpider= new Image();
+
+/* --- Points du jeu (coords normalisées x,y; à affiner si besoin) --- */
+const POIS = [
+  { key:"otranto", name:"Otranto — Cathédrale", x:0.86, y:0.52, info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs (1480)." },
+  { key:"portobadisco", name:"Porto Badisco — Calanque", x:0.80, y:0.56, info:"Grande calanque turquoise, entourée de falaises." },
+  { key:"santacesarea", name:"Santa Cesarea Terme", x:0.74, y:0.60, info:"Thermes soufrés & architecture éclectique (Villa Sticchi)." },
+  { key:"castro", name:"Castro — Castrum Minervae", x:0.70, y:0.65, info:"Temple d’Athéna (légende), grotte Zinzulusa, épisode d’Énée." },
+  { key:"ciolo", name:"Il Ciolo", x:0.64, y:0.75, info:"Petit fjord avec pont routier au-dessus de l’eau profonde." },
+  { key:"leuca", name:"Santa Maria di Leuca", x:0.60, y:0.88, info:"Phare haut & cascade monumentale au ‘finibus terrae’." },
+  { key:"gallipoli", name:"Gallipoli", x:0.35, y:0.62, info:"Vieille ville sur îlot relié par pont ; Kallipolis." },
+  { key:"portocesareo", name:"Porto Cesareo", x:0.22, y:0.46, info:"Plages magnifiques & réserve marine." },
+  { key:"nardo", name:"Nardò", x:0.28, y:0.50, info:"Centre baroque ; proximité de Porto Selvaggio." },
+  { key:"lecce", name:"Lecce", x:0.53, y:0.28, info:"Baroque en pietra leccese : Santa Croce, Duomo, amphithéâtre." }
+];
+
+/* --- Joueur --- */
+const player = { x:0.55, y:0.25, speed:0.004, size:0.10 }; // position normalisée [0..1]
+let collected = new Set(); // progression (clé des points)
+
+/* --- Utils --- */
+function fileToDataURL(f){ return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(f); }); }
+function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
+function refreshStars(){ $score.textContent=collected.size; $stars.innerHTML=''; for(let i=0;i<10;i++){ const im=new Image(); im.className='star'; im.src=starSVG(i<collected.size?"#d26f45":"#f0c9a7"); $stars.appendChild(im);} }
+refreshStars();
+
+/* --- D-pad tactile (maintien = déplacement) --- */
+for (const el of document.querySelectorAll('.btn')) {
+  const dx=parseFloat(el.dataset.dx), dy=parseFloat(el.dataset.dy);
+  let press=false, id=null;
+  const step=()=>{ if(!press) return; player.x=Math.max(0,Math.min(1,player.x+dx*player.speed)); player.y=Math.max(0,Math.min(1,player.y+dy*player.speed)); id=requestAnimationFrame(step); };
+  el.addEventListener('touchstart', e=>{ press=true; step(); e.preventDefault(); }, {passive:false});
+  el.addEventListener('touchend', ()=>{ press=false; cancelAnimationFrame(id); });
+}
+// Empêche le scroll quand on touche le canvas ou les boutons
+document.addEventListener('touchmove', e=>{ if (e.target.closest('.btn') || e.target.closest('canvas')) e.preventDefault(); }, {passive:false});
+
+/* --- Canvas & rendu --- */
+let W=0,H=0,dpr=1;
+function resize(){ dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1)); W=canvas.clientWidth=canvas.parentElement.clientWidth; H=canvas.clientHeight=canvas.parentElement.clientHeight; canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+addEventListener('resize', resize);
+
+function drawStarfish(cx, cy, R){
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
+  ctx.beginPath(); const pts=5, inner=R*0.45;
+  for(let i=0;i<pts*2;i++){ const ang=(Math.PI/pts)*i - Math.PI/2; const r=(i%2===0)?R:inner; const x=cx+Math.cos(ang)*r; const y=cy+Math.sin(ang)*r; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+  ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
+}
+
+/* --- Bulle BD d’Aracné --- */
+function showArachneAt(p, screenX, screenY) {
+  araImg.src = imgSpider.src; // avatar
+  bdTitle.textContent = "Aracné — " + p.name.split(" — ")[0];
+  bdText.textContent  = p.info;
+  // positionner à côté du point (éviter débord)
+  araBox.style.left = Math.min(screenX + 12, window.innerWidth - 270) + 'px';
+  araBox.style.top  = Math.max(12, screenY - 30) + 'px';
+  araBox.classList.remove('hide');
+  araBox.classList.add('show');
+  araBox.style.display = 'flex';
+  clearTimeout(showArachneAt._t);
+  showArachneAt._t = setTimeout(()=> hideArachne(), 4500);
+}
+function hideArachne(){ araBox.classList.add('hide'); setTimeout(()=>{ araBox.classList.remove('show'); araBox.style.display='none'; }, 160); }
+araBox.addEventListener('click', hideArachne);
+
+/* --- Boucle --- */
+let last=0;
+function loop(ts){
+  if(!last) last=ts; const dt=Math.min(0.035,(ts-last)/1000); last=ts;
+  if (!(imgMap.complete && imgMap.naturalWidth)) { requestAnimationFrame(loop); return; }
+
+  const mw=imgMap.naturalWidth, mh=imgMap.naturalHeight;
+  const scale=Math.min(W/mw,H/mh);
+  const dw=mw*scale, dh=mh*scale;
+  const ox=(W-dw)/2, oy=(H-dh)/2;
+
+  ctx.clearRect(0,0,W,H);
+  ctx.drawImage(imgMap, ox, oy, dw, dh);
+
+  // chemin pointillé entre les POIs
+  ctx.save(); ctx.setLineDash([8,6]); ctx.strokeStyle='#7a4c25'; ctx.lineWidth=2; ctx.beginPath();
+  for (let i=0;i<POIS.length;i++){ const p=POIS[i]; const x=ox+p.x*dw, y=oy+p.y*dh; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+
+  // X + étoile de mer si non collectée
+  for (const p of POIS){
+    const x=ox+p.x*dw, y=oy+p.y*dh;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(0.2);
+    ctx.strokeStyle = collected.has(p.key)? '#e2552d' : '#b04123';
+    ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-8,-8); ctx.lineTo(8,8); ctx.moveTo(-8,8); ctx.lineTo(8,-8); ctx.stroke(); ctx.restore();
+    if(!collected.has(p.key)) drawStarfish(x, y-24, Math.max(18, Math.min(26, Math.min(W,H)*0.03)));
+  }
+
+  // Hirundu
+  const bw=Math.min(160, Math.max(90, dw*player.size));
+  const bx=ox+player.x*dw, by=oy+player.y*dh;
+  if (imgBird.complete && imgBird.naturalWidth) ctx.drawImage(imgBird, bx-bw/2, by-bw/2, bw, bw);
+
+  // Arachne (coin)
+  const sw=Math.min(100, Math.max(70, W*0.11));
+  if (imgSpider.complete && imgSpider.naturalWidth) ctx.drawImage(imgSpider, W - sw - 10, 10, sw, sw);
+
+  // collisions
+  for (const p of POIS){
+    if (collected.has(p.key)) continue;
+    const px=ox+p.x*dw, py=oy+p.y*dh;
+    if (Math.hypot(bx-px, by-py) < 44){
+      collected.add(p.key); refreshStars();
+      // bulle BD d’Aracné
+      showArachneAt(p, px, py);
+      break;
+    }
+  }
+
+  requestAnimationFrame(loop);
+}
+
+/* --- Start helpers --- */
+function startWithSources(mapSrc, birdSrc, spiderSrc){
+  imgMap.src = mapSrc; imgBird.src = birdSrc; imgSpider.src = spiderSrc;
+  document.getElementById('touch').style.display='flex';
+  $overlay.style.display='none';
+  resize();
+  requestAnimationFrame(loop);
+}
+function fileToURLInput(input){ return new Promise((res,rej)=>{ const f=input.files[0]; if(!f){res("");return;} const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); }); }
+async function startFromPicker(){
+  const m = await fileToURLInput($mapFile);
+  const b = await fileToURLInput($birdFile);
+  const s = await fileToURLInput($spiFile);
+  if (!m || !b || !s){ alert("Choisis la carte, Hirundu et Aracné pour démarrer."); return; }
+  startWithSources(m,b,s);
+}
+
+/* --- Boot --- */
+function init(){
+  // Démarrage par URLs (si fournies)
+  if (MAP_URL && HIRUNDU_URL && ARACNE_URL){
+    startWithSources(MAP_URL, HIRUNDU_URL, ARACNE_URL);
+  } else {
+    // sinon: overlay + fichiers
+    document.getElementById('touch').style.display='none';
+    $overlay.style.display='flex';
+    $start.addEventListener('click', startFromPicker);
+    $start.addEventListener('touchend', (e)=>{ e.preventDefault(); startFromPicker(); });
+  }
+  // éviter le scroll pendant les interactions
+  document.addEventListener('touchmove', e=>{ if (e.target.closest('.btn') || e.target.closest('canvas')) e.preventDefault(); }, {passive:false});
+}
+init();
+</script>
+</body>
+</html>
