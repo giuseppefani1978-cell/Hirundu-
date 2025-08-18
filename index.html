@@ -153,7 +153,8 @@ tarAvatar.src=TARANTULA_URL;
 
 /* ================= 4) Images (préchargement + diagnostics) ================= */
 const mapImg=new Image(), birdImg=new Image(), spiderImg=new Image();
-mapImg.onload=()=>{ drawSplash(); }; mapImg.onerror=()=>assetFail('Carte', MAP_URL, true);
+mapImg.onload=()=>{ drawSplash(); };
+mapImg.onerror=()=>assetFail('Carte', MAP_URL, true);
 birdImg.onerror=()=>assetFail('Aracne', BIRD_URL);
 spiderImg.onerror=()=>assetFail('Tarantula', TARANTULA_URL);
 mapImg.src=MAP_URL; birdImg.src=BIRD_URL; spiderImg.src=TARANTULA_URL;
@@ -179,7 +180,7 @@ const POIS = [
   { key:"lecce",         name:"Lecce",                         x:0.53,y:0.28,info:"Baroque en pietra leccese : Santa Croce, Duomo, amphithéâtre." }
 ];
 
-const player={ x:0.55, y:0.25, speed:0.0048, size:0.11 };   // Aracne (hirondelle), positions normalisées
+const player={ x:0.55, y:0.25, speed:0.0048, size:0.11 };   // positions normalisées [0..1]
 const collected=new Set();
 let currentIdx=0;  // étape active
 
@@ -235,14 +236,13 @@ document.addEventListener('touchmove',e=>{
 /* ================= 8) Musique rétro (Web Audio) ================= */
 let audioCtx=null, musicOn=false, loopTimer=null;
 function startMusic(){
-  if(!audioCtx){
-    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-  } else if (audioCtx.state === 'suspended'){
-    audioCtx.resume();
-  }
-  musicOn = true;
-  playPhrase();
-  musicBtn.textContent = "⏹️ Musique";
+  try{
+    if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+    else if(audioCtx.state==='suspended'){ audioCtx.resume(); }
+    musicOn = true;
+    musicBtn.textContent = "⏹️ Musique";
+    playPhrase();
+  }catch(e){ console.warn('Audio init error', e); }
 }
 function stopMusic(){
   musicOn = false;
@@ -250,13 +250,10 @@ function stopMusic(){
   if(audioCtx && audioCtx.state!=="closed"){ audioCtx.suspend(); }
   musicBtn.textContent = "🎵 Musique";
 }
-function toggleMusic(){
-  if(!musicOn) startMusic(); else stopMusic();
-}
+function toggleMusic(){ (!musicOn)?startMusic():stopMusic(); }
 function playPhrase(){
   if(!musicOn || !audioCtx) return;
-  // Petite suite "ta ta ta..." (do ré mi fa sol la si do)
-  const notes=[262,294,330,349,392,440,494,523];
+  const notes=[262,294,330,349,392,440,494,523]; // do ré mi fa sol la si do
   let t=audioCtx.currentTime;
   notes.forEach((freq,i)=>{
     const osc=audioCtx.createOscillator();
@@ -268,13 +265,12 @@ function playPhrase(){
     osc.connect(gain).connect(audioCtx.destination);
     osc.start(t);
     osc.stop(t+0.25);
-    t+=0.3; // intervalle entre "ta"
+    t+=0.3;
   });
-  // rejoue la phrase dans ~2.8s
   loopTimer=setTimeout(playPhrase, 2800);
 }
 
-/* ================= 9) Rendu ================= */
+/* ================= 9) Rendu & boucle ================= */
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
   ctx.beginPath(); const pts=5,inner=R*0.45;
@@ -282,8 +278,6 @@ function drawStarfish(cx,cy,R){
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
 
-const collected=new Set();
-let currentIdx=0;  // étape active
 let running=false;
 function draw(ts){
   if(ts){ if(!lastTS) lastTS=ts; const dt=Math.min(0.05,(ts-lastTS)/1000); lastTS=ts; dashOffset+=PATH.speed*dt; }
@@ -369,25 +363,19 @@ function drawSplash(force){
 startBtn.addEventListener('click', ()=>{
   overlay.style.display='none';
   touch.classList.add('show');
-  musicBtn.style.display='inline-block'; // montrer le bouton musique
-  // iOS exige une interaction utilisateur → on lance la musique ici (et on laisse le bouton pour on/off)
-  startMusic();
+  musicBtn.style.display='inline-block'; // afficher le bouton musique
+  startMusic(); // iOS: déclenché par un geste utilisateur
   resize();
   running=true;
   requestAnimationFrame(loop);
 });
 startBtn.addEventListener('touchend', e=>{ e.preventDefault(); startBtn.click(); });
-
 musicBtn.addEventListener('click', toggleMusic);
 
 /* Empêche le scroll pendant le jeu sur iPhone */
 document.addEventListener('touchmove', e => {
   if (e.target.closest('.btn') || e.target.closest('canvas')) e.preventDefault();
 }, {passive:false});
-
-/* ====== Données nécessaires au rendu (après fonctions) ====== */
-const POIS = POIS; // (déjà défini plus haut)
-const player = player; // (déjà défini plus haut)
 </script>
 </body>
 </html>
