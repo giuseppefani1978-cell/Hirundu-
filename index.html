@@ -124,12 +124,12 @@
 </div>
 
 <script>
-/* ================= 1) ASSETS ================= */
-const MAP_URL      = "assets/salento-map.jpeg";  // Carte
-const BIRD_URL     = "assets/aracne .PNG";       // Aracne (hirondelle)
-const TARANTULA_URL= "assets/tarantula .PNG";    // Tarantula (araignée)
+/* ================== ASSETS ================== */
+const MAP_URL       = "assets/salento-map.jpg";
+const BIRD_URL      = "assets/aracne.png";
+const TARANTULA_URL = "assets/tarantula.png";
 
-/* ================= 2) Canvas ================= */
+/* ================== CANVAS ================== */
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let W=0,H=0,dpr=1;
@@ -141,17 +141,22 @@ function resize(){
 }
 addEventListener('resize', resize);
 
-/* ================= 3) UI refs ================= */
-const overlay=document.getElementById('overlay');
-const startBtn=document.getElementById('startBtn');
-const touch=document.getElementById('touch');
-const scoreEl=document.getElementById('score'), starsEl=document.getElementById('stars');
-const tarBox=document.getElementById('tarBox'), tarAvatar=document.getElementById('tarAvatar'), bdTitle=document.getElementById('bdTitle'), bdText=document.getElementById('bdText');
-const errBox=document.getElementById('err'), errText=document.getElementById('errText');
-const musicBtn=document.getElementById('musicBtn');
-tarAvatar.src=TARANTULA_URL;
+/* ================== UI REFS ================== */
+const overlay  = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+const touch    = document.getElementById('touch');
+const scoreEl  = document.getElementById('score');
+const starsEl  = document.getElementById('stars');
+const tarBox   = document.getElementById('tarBox');
+const tarAvatar= document.getElementById('tarAvatar');
+const bdTitle  = document.getElementById('bdTitle');
+const bdText   = document.getElementById('bdText');
+const errBox   = document.getElementById('err');
+const errText  = document.getElementById('errText');
+const musicBtn = document.getElementById('musicBtn');
+tarAvatar.src  = TARANTULA_URL;
 
-/* ================= 4) Images (préchargement + diagnostics) ================= */
+/* ================== IMAGES ================== */
 const mapImg=new Image(), birdImg=new Image(), spiderImg=new Image();
 mapImg.onload=()=>{ drawSplash(); };
 mapImg.onerror=()=>assetFail('Carte', MAP_URL, true);
@@ -161,12 +166,11 @@ mapImg.src=MAP_URL; birdImg.src=BIRD_URL; spiderImg.src=TARANTULA_URL;
 
 function assetFail(who,url,showPlaceholder){
   errBox.style.display='block';
-  const line=`• ${who} introuvable : "${url}"`;
-  errText.innerHTML = (errText.innerHTML? errText.innerHTML+"<br>":"")+line;
+  errText.innerHTML += (errText.innerHTML? "<br>":"") + `• ${who} introuvable : "${url}"`;
   if(showPlaceholder) drawSplash(true);
 }
 
-/* ================= 5) Données chasse ================= */
+/* ============== DONNÉES CHASSE ============== */
 const POIS = [
   { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86,y:0.52,info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs (1480)." },
   { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80,y:0.56,info:"Grande calanque turquoise, entourée de falaises." },
@@ -180,15 +184,15 @@ const POIS = [
   { key:"lecce",         name:"Lecce",                         x:0.53,y:0.28,info:"Baroque en pietra leccese : Santa Croce, Duomo, amphithéâtre." }
 ];
 
-const player={ x:0.55, y:0.25, speed:0.0048, size:0.11 };   // positions normalisées [0..1]
-const collected=new Set();
-let currentIdx=0;  // étape active
+const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 }; // normalisé [0..1]
+const collected= new Set();
+let currentIdx = 0;
 
-/* Chemin animé (prochain segment seulement) */
+/* ====== CHEMIN ANIMÉ ====== */
 let dashOffset=0, lastTS=0;
 const PATH={ dash:[10,6], speed:120, color:'#7a4c25', width:3, cap:'round', join:'round' };
 
-/* ================= 6) HUD & bulle ================= */
+/* ====== HUD & BULLE ====== */
 function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
 function refreshStars(){ scoreEl.textContent=collected.size; starsEl.innerHTML=''; for(let i=0;i<10;i++){ const im=new Image(); im.className='star'; im.src=starSVG(i<collected.size?"#d26f45":"#f0c9a7"); starsEl.appendChild(im);} }
 refreshStars();
@@ -196,18 +200,18 @@ refreshStars();
 function showTarantulaAt(p,screenX,screenY){
   bdTitle.textContent = "Tarantula — " + p.name.split(" — ")[0];
   bdText.textContent  = p.info;
-  tarBox.style.left = Math.min(screenX + 12, window.innerWidth - 270) + 'px';
-  tarBox.style.top  = Math.max(12, screenY - 30) + 'px';
+  tarBox.style.left   = Math.min(screenX + 12, window.innerWidth - 270) + 'px';
+  tarBox.style.top    = Math.max(12, screenY - 30) + 'px';
   tarBox.classList.remove('hide'); tarBox.classList.add('show'); tarBox.style.display='flex';
   clearTimeout(showTarantulaAt._t); showTarantulaAt._t = setTimeout(()=>hideTarantula(), 4200);
 }
 function hideTarantula(){ tarBox.classList.add('hide'); setTimeout(()=>{ tarBox.classList.remove('show'); tarBox.style.display='none'; },160); }
 tarBox.addEventListener('click', hideTarantula);
 
-/* ================= 7) Contrôles ================= */
+/* ============= CONTRÔLES TACTILES ============= */
 for(const el of document.querySelectorAll('.btn')){
   const dx=parseFloat(el.dataset.dx), dy=parseFloat(el.dataset.dy);
-  let press=false,id=null;
+  let press=false, id=null;
   const step=()=>{ if(!press) return;
     player.x=Math.max(0,Math.min(1,player.x+dx*player.speed));
     player.y=Math.max(0,Math.min(1,player.y+dy*player.speed));
@@ -216,7 +220,7 @@ for(const el of document.querySelectorAll('.btn')){
   el.addEventListener('touchstart',e=>{press=true;step();e.preventDefault();},{passive:false});
   el.addEventListener('touchend',()=>{press=false;cancelAnimationFrame(id);});
 }
-/* Drag direct */
+/* Drag direct sur l’oiseau */
 let dragging=false;
 canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0]; const bx=player.x*W, by=player.y*H;
@@ -233,49 +237,43 @@ document.addEventListener('touchmove',e=>{
   if(e.target.closest('.btn')||e.target.closest('canvas')) e.preventDefault();
 },{passive:false});
 
-/* ================= 8) Musique rétro (Web Audio) — boost + SFX collecte ================= */
+/* ======== MUSIQUE (boost + emphasis, iPhone OK) ======== */
 let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null;
-
 function createAudioOnce(){
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   masterGain = audioCtx.createGain();
-  masterGain.gain.value = 0.50; // 🔊 volume global (était ~0.28)
+  masterGain.gain.value = 0.50; // volume global
   masterGain.connect(audioCtx.destination);
-
-  // Déverrouillage iOS : jouer un buffer quasi-silencieux
+  // déverrouillage iOS
   const buffer = audioCtx.createBuffer(1, 1, 22050);
   const src = audioCtx.createBufferSource();
   src.buffer = buffer;
   src.connect(masterGain);
   src.start(0);
 }
-
 async function startMusic(){
   try{
     createAudioOnce();
     if (audioCtx.state === 'suspended') await audioCtx.resume();
-    ping(700, 0.18); // petit bip de confirmation, un peu plus fort
+    ping(700, 0.18);
     musicOn = true;
     musicBtn.textContent = "⏹️ Musique";
     playPhrase();
   }catch(e){ console.warn('Audio init error', e); }
 }
-
 function stopMusic(){
   musicOn = false;
   if (loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
   if (audioCtx && audioCtx.state !== "closed"){ audioCtx.suspend(); }
   musicBtn.textContent = "🎵 Musique";
 }
-
 function toggleMusic(){ musicOn ? stopMusic() : startMusic(); }
-
 function ping(freq=440, amp=0.2){
   if (!audioCtx || !masterGain) return;
   const t = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
+  const g   = audioCtx.createGain();
   osc.type = 'square';
   osc.frequency.value = freq;
   g.gain.setValueAtTime(amp, t);
@@ -284,22 +282,16 @@ function ping(freq=440, amp=0.2){
   osc.start(t);
   osc.stop(t + 0.16);
 }
-
-// Mélodie de fond en boucle (un peu plus présente)
 function playPhrase(){
   if (!musicOn || !audioCtx) return;
-  const notes = [262, 294, 330, 349, 392, 440, 494, 523]; // do ré mi fa sol la si do
+  const notes = [262, 294, 330, 349, 392, 440, 494, 523]; // do-ré-mi-fa-sol-la-si-do
   let t = audioCtx.currentTime;
-
-  notes.forEach((freq,i)=>{
-    scheduleSquare(freq, t, 0.26, 0.28); // (freq, start, dur, amp)  ⬅️ amp plus haut
+  notes.forEach((freq)=>{
+    scheduleSquare(freq, t, 0.26, 0.28);
     t += 0.30;
   });
-
   loopTimer = setTimeout(playPhrase, 2800);
 }
-
-// NOTE carrée type 8-bit
 function scheduleSquare(freq, start, dur=0.25, amp=0.26){
   const osc = audioCtx.createOscillator();
   const g   = audioCtx.createGain();
@@ -311,18 +303,17 @@ function scheduleSquare(freq, start, dur=0.25, amp=0.26){
   osc.start(start);
   osc.stop(start + dur);
 }
-
-// 🔔 Emphasis de collecte : petit “tatatata” ascendant, plus fort que la musique
+// emphasis sonore à la collecte
 function starEmphasis(){
   if (!audioCtx || !masterGain) return;
   const base = audioCtx.currentTime;
-  const seq  = [784, 880, 988, 1175]; // sol5, la5, si5, ré6
-  seq.forEach((f, i)=>{
-    scheduleSquare(f, base + i*0.08, 0.18, 0.42); // amp bien audible
-  });
+  [784,880,988,1175].forEach((f,i)=>{ scheduleSquare(f, base + i*0.08, 0.18, 0.42); });
 }
-  
-/* ================= 9) Rendu & boucle ================= */
+
+/* ============= RENDU & BOUCLE ============= */
+/* (option) réserve visuelle en bas pour le D-pad */
+const BOTTOM_UI_RESERVE = 180;
+
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
   ctx.beginPath(); const pts=5,inner=R*0.45;
@@ -334,9 +325,11 @@ let running=false;
 function draw(ts){
   if(ts){ if(!lastTS) lastTS=ts; const dt=Math.min(0.05,(ts-lastTS)/1000); lastTS=ts; dashOffset+=PATH.speed*dt; }
 
-  // Mise à l’échelle “letterbox”
+  // Mise à l’échelle avec espace en bas
   const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
-  const scale=Math.min(W/mw,H/mh), dw=mw*scale, dh=mh*scale, ox=(W-dw)/2, oy=(H-dh)/2;
+  const availW=W, availH=Math.max(200, H - BOTTOM_UI_RESERVE);
+  const scale=Math.min(availW/mw, availH/mh), dw=mw*scale, dh=mh*scale;
+  const ox=(W-dw)/2, oy=Math.max(0,(availH-dh)/2);
 
   ctx.clearRect(0,0,W,H);
 
@@ -344,19 +337,19 @@ function draw(ts){
   if (mapImg.complete && mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
   else { ctx.fillStyle="#d9e6f2"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, ox+14, oy+24); }
 
-  // Segments déjà parcourus (trait brun plein)
+  // Chemin plein (parcouru)
   ctx.save(); ctx.strokeStyle="#7a4c25"; ctx.lineWidth=4; ctx.lineCap="round"; ctx.lineJoin="round";
   ctx.beginPath();
   for(let i=0;i<Math.min(currentIdx,POIS.length-1);i++){
     const a=POIS[i], b=POIS[i+1];
     const ax=ox+a.x*dw, ay=oy+a.y*dh, bx=ox+b.x*dw, by=oy+b.y*dh;
-    const mx=(ax+bx)/2, my=(ay+by)/2 + ((i%2?1:-1)*8); // légère courbe
+    const mx=(ax+bx)/2, my=(ay+by)/2 + ((i%2?1:-1)*8);
     if(i===0) ctx.moveTo(ax,ay);
     ctx.quadraticCurveTo(mx,my,bx,by);
   }
   ctx.stroke(); ctx.restore();
 
-  // Prochain segment animé (pointillé)
+  // Segment suivant animé (pointillé)
   if(currentIdx < POIS.length-1){
     const a=POIS[currentIdx], b=POIS[currentIdx+1];
     const ax=ox+a.x*dw, ay=oy+a.y*dh, bx=ox+b.x*dw, by=oy+b.y*dh;
@@ -369,7 +362,7 @@ function draw(ts){
     ctx.restore();
   }
 
-  // X sur étapes visitées + étoile visible pour l’étape active
+  // X + étoile active
   for(let i=0;i<=currentIdx && i<POIS.length;i++){
     const p=POIS[i]; const x=ox+p.x*dw, y=oy+p.y*dh;
     ctx.save(); ctx.translate(x,y); ctx.rotate(0.2); ctx.strokeStyle='#b04123'; ctx.lineWidth=3;
@@ -385,31 +378,29 @@ function draw(ts){
   if (birdImg.complete && birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2, by-bw/2, bw, bw);
   else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx,by,bw*0.35,0,Math.PI*2); ctx.fill(); }
 
-  // Collision → passe à l’étape suivante + bulle
+  // Collision → collecte
   if(currentIdx < POIS.length){
-  const p=POIS[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
-  if(Math.hypot(bx-px,by-py)<44){
-    collected.add(p.key); 
-    refreshStars();
-
-    starEmphasis();              // 🔊 emphase sonore à la collecte
-
-    showTarantulaAt(p, px, py);
-    currentIdx++;
-    if(currentIdx===POIS.length){ 
-      setTimeout(()=>{ alert("🎉 Bravo ! 10/10 étoiles collectées."); }, 350); 
+    const p=POIS[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
+    if(Math.hypot(bx-px,by-py)<44){
+      collected.add(p.key); refreshStars();
+      starEmphasis();                 // emphase sonore
+      showTarantulaAt(p, px, py);
+      currentIdx++;
+      if(currentIdx===POIS.length){ setTimeout(()=>{ alert("🎉 Bravo ! 10/10 étoiles collectées."); }, 350); }
     }
   }
 }
 
 function loop(ts){ if(!running) return; draw(ts); requestAnimationFrame(loop); }
 
-/* ================= 10) Démarrage ================= */
+/* ============== DÉMARRAGE ============== */
 function drawSplash(force){
   resize();
   if (mapImg.complete && mapImg.naturalWidth){
     const mw=mapImg.naturalWidth, mh=mapImg.naturalHeight;
-    const scale=Math.min(W/mw,H/mh), dw=mw*scale, dh=mh*scale, ox=(W-dw)/2, oy=(H-dh)/2;
+    const availW=W, availH=Math.max(200, H - BOTTOM_UI_RESERVE);
+    const scale=Math.min(availW/mw, availH/mh), dw=mw*scale, dh=mh*scale;
+    const ox=(W-dw)/2, oy=Math.max(0,(availH-dh)/2);
     ctx.drawImage(mapImg,ox,oy,dw,dh);
   } else if (force){
     ctx.fillStyle="#d9e6f2"; ctx.fillRect(0,0,W,H);
@@ -420,8 +411,8 @@ function drawSplash(force){
 startBtn.addEventListener('click', ()=>{
   overlay.style.display='none';
   touch.classList.add('show');
-  musicBtn.style.display='inline-block'; // afficher le bouton musique
-  startMusic(); // iOS: déclenché par un geste utilisateur
+  musicBtn.style.display='inline-block';
+  startMusic(); // geste utilisateur OK pour iPhone
   resize();
   running=true;
   requestAnimationFrame(loop);
