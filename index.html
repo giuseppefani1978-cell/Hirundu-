@@ -1,258 +1,320 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Chasse au trésor du Salento</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #f4e7c3;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Salento — Aracne & Tarantula (Chasse au trésor)</title>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<style>
+  /* ===== Base layout ===== */
+  html,body{height:100%;margin:0;background:#f6f1e1;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  *{-webkit-tap-highlight-color:transparent}
+  .wrap{display:flex;flex-direction:column;height:100%}
+  .game{position:relative;flex:1;overflow:hidden}
+  canvas{width:100%;height:100%;display:block;background:#e2eef7;touch-action:none}
 
-    h1 {
-      text-align: center;
-      padding: 10px;
-      font-family: "Treasure Map Deadhand", cursive;
-      background: #d19f68;
-      border-bottom: 3px solid #000;
-    }
+  /* ===== Overlay titre ===== */
+  .overlay{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(246,241,225,.84);backdrop-filter:blur(3px);z-index:20
+  }
+  .card{
+    width:min(560px,92vw);border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;
+    box-shadow:0 10px 26px rgba(0,0,0,.18);padding:18px;text-align:center
+  }
+  .card h1{margin:0 0 6px 0;font-size:22px}
+  .card p{margin:6px 0 14px 0;opacity:.82}
+  .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700}
 
-    #gameCanvas {
-      display: block;
-      margin: auto;
-      border: 4px solid #000;
-      background: #fff;
-    }
+  /* ===== HUD score ===== */
+  .hud{
+    position:absolute;left:10px;top:10px;background:rgba(255,248,220,.96);
+    border:2px solid #c8b37a;border-radius:10px;padding:8px 10px;font-size:14px;z-index:10
+  }
+  .stars{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+  .star{width:18px;height:18px;opacity:.95}
 
-    #startBtn {
-      display: block;
-      margin: 20px auto;
-      padding: 10px 20px;
-      font-size: 20px;
-      background: #c98f4a;
-      color: #fff;
-      border: 2px solid #000;
-      cursor: pointer;
-    }
+  /* ===== Bulle Tarantula ===== */
+  .tarBox{position:absolute;display:none;align-items:flex-start;gap:8px;z-index:12;
+          transform-origin:left bottom;transition:transform .15s ease,opacity .15s ease}
+  .tarBox.show{display:flex;opacity:1;transform:scale(1)}
+  .tarBox.hide{opacity:0;transform:scale(.95)}
+  .tarBox img{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#fff;border:2px solid #c8b37a;box-shadow:0 6px 14px rgba(0,0,0,.15)}
+  .bdBubble{max-width:min(320px,56vw);background:#fff;border:2px solid #c8b37a;border-radius:14px;
+            padding:10px 12px;box-shadow:0 8px 18px rgba(0,0,0,.15);position:relative;font-size:14px;line-height:1.25}
+  .bdBubble:after{content:"";position:absolute;left:-10px;bottom:10px;border-width:10px;border-style:solid;border-color:transparent #c8b37a transparent transparent}
+  .bdBubble:before{content:"";position:absolute;left:-8px;bottom:12px;border-width:8px;border-style:solid;border-color:transparent #fff transparent transparent}
+  .bdTitle{font-weight:700;margin-bottom:4px}
 
-    #dialogue {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.9);
-      border: 2px solid #000;
-      padding: 10px;
-      width: 300px;
-      font-size: 16px;
-      display: none;
-    }
+  /* ===== D-pad tactile ===== */
+  .touch{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:14px;align-items:center;z-index:11}
+  .touch.show{display:flex}
+  .dpad{display:grid;grid-template-columns:72px 72px 72px;grid-template-rows:72px 72px 72px;gap:12px}
+  .btn{width:72px;height:72px;border-radius:14px;border:2px solid #c8b37a;background:#fff7de;
+       display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;font-weight:800;font-size:22px;box-shadow:0 3px 0 #c8b37a}
+  .btn:active{transform:translateY(1px)}
 
-    #controls {
-      position: absolute;
-      bottom: 30px;
-      right: 30px;
-      display: none;
-    }
-
-    .btn {
-      width: 60px;
-      height: 60px;
-      background: #c98f4a;
-      border: 2px solid #000;
-      border-radius: 50%;
-      margin: 5px;
-      font-size: 22px;
-      color: white;
-      font-weight: bold;
-      user-select: none;
-    }
-
-    #hud {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 20px;
-      background: rgba(255,255,255,0.8);
-      border: 2px solid #000;
-      padding: 5px 10px;
-    }
-  </style>
+  /* ===== Bandeau d’erreur assets ===== */
+  .err{position:absolute;right:10px;top:10px;background:#ffefef;border:2px solid #d66;border-radius:10px;padding:8px 10px;font-size:12px;color:#900;z-index:30;max-width:min(320px,60vw)}
+  .err b{display:block;margin-bottom:4px}
+</style>
 </head>
 <body>
-  <h1>🐦 Aracne & 🕷 Tarantula - Chasse au trésor du Salento</h1>
-  <button id="startBtn">▶️ Démarrer le jeu</button>
-  <div id="hud">⭐ 0 / 10</div>
-  <div id="dialogue"></div>
-  <div id="controls">
-    <div style="text-align:center;">
-      <button class="btn" id="up">⬆️</button>
+<div class="wrap">
+  <div class="game">
+    <!-- Overlay -->
+    <div class="overlay" id="overlay">
+      <div class="card">
+        <h1>Salento — Aracne & Tarantula</h1>
+        <p>Véritable chasse au trésor : une étoile à la fois. Suis la piste !</p>
+        <button id="startBtn">Démarrer</button>
+      </div>
     </div>
-    <div>
-      <button class="btn" id="left">⬅️</button>
-      <button class="btn" id="down">⬇️</button>
-      <button class="btn" id="right">➡️</button>
+
+    <div class="err" id="err" style="display:none">
+      <b>⚠️ Problème d’assets</b>
+      <div id="errText"></div>
+    </div>
+
+    <canvas id="c"></canvas>
+
+    <div class="hud">
+      <div>Étoiles : <span id="score">0</span>/10</div>
+      <div class="stars" id="stars"></div>
+    </div>
+
+    <div class="tarBox" id="tarBox">
+      <img id="tarAvatar" alt="Tarantula">
+      <div class="bdBubble">
+        <div class="bdTitle" id="bdTitle">Tarantula</div>
+        <div id="bdText"></div>
+      </div>
+    </div>
+
+    <div class="touch" id="touch">
+      <div class="dpad">
+        <div></div> <div class="btn" data-dx="0" data-dy="-1">↑</div> <div></div>
+        <div class="btn" data-dx="-1" data-dy="0">←</div> <div></div> <div class="btn" data-dx="1" data-dy="0">→</div>
+        <div></div> <div class="btn" data-dx="0" data-dy="1">↓</div> <div></div>
+      </div>
     </div>
   </div>
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
+</div>
 
-  <script>
-    // ----------------------------
-    // VARIABLES PRINCIPALES
-    // ----------------------------
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+<script>
+/* ================= 1) ASSETS ================= */
+const MAP_URL      = "assets/salento-map.jpg";  // Carte
+const BIRD_URL     = "assets/aracne .png";       // Aracne (hirondelle)
+const TARANTULA_URL= "assets/tarantula .png";    // Tarantula (araignée)
 
-    let gameStarted = false;
-    let currentStep = 0;
-    let starsCollected = 0;
+/* ================= 2) Canvas ================= */
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W=0,H=0,dpr=1;
+function resize(){
+  dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+  W=canvas.clientWidth=canvas.parentElement.clientWidth;
+  H=canvas.clientHeight=canvas.parentElement.clientHeight;
+  canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener('resize', resize);
 
-    const mapImg = new Image();
-    const aracneImg = new Image();
-    const tarantulaImg = new Image();
+/* ================= 3) UI refs ================= */
+const overlay=document.getElementById('overlay');
+const startBtn=document.getElementById('startBtn');
+const touch=document.getElementById('touch');
+const scoreEl=document.getElementById('score'), starsEl=document.getElementById('stars');
+const tarBox=document.getElementById('tarBox'), tarAvatar=document.getElementById('tarAvatar'), bdTitle=document.getElementById('bdTitle'), bdText=document.getElementById('bdText');
+const errBox=document.getElementById('err'), errText=document.getElementById('errText');
+tarAvatar.src=TARANTULA_URL;
 
-    mapImg.src = "assets/salento-map.jpg";
-    aracneImg.src = "assets/aracne .png";
-    tarantulaImg.src = "assets/tarantula .png";
+/* ================= 4) Images (préchargement + diagnostics) ================= */
+const mapImg=new Image(), birdImg=new Image(), spiderImg=new Image();
+mapImg.onload=()=>{ drawSplash(); }; mapImg.onerror=()=>assetFail('Carte', MAP_URL, true);
+birdImg.onerror=()=>assetFail('Aracne', BIRD_URL);
+spiderImg.onerror=()=>assetFail('Tarantula', TARANTULA_URL);
+mapImg.src=MAP_URL; birdImg.src=BIRD_URL; spiderImg.src=TARANTULA_URL;
 
-    // Joueur (Aracne l’hirondelle)
-    const player = { 
-      x: 100, 
-      y: 100, 
-      size: 40, 
-      speed: 5 
-    };
+function assetFail(who,url,showPlaceholder){
+  errBox.style.display='block';
+  const line=`• ${who} introuvable : "${url}"`;
+  errText.innerHTML = (errText.innerHTML? errText.innerHTML+"<br>":"")+line;
+  if(showPlaceholder) drawSplash(true);
+}
 
-    // Liste des 10 étapes avec coordonnées
-    const steps = [
-      { x: 650, y: 120, texte: "Bienvenue à Otranto et sa cathédrale !" },
-      { x: 670, y: 180, texte: "Porto Badisco, célèbre calanque." },
-      { x: 640, y: 220, texte: "Santa Cesarea Terme et ses thermes." },
-      { x: 600, y: 260, texte: "Castro et la légende du temple d’Athéna." },
-      { x: 570, y: 300, texte: "La calanque Il Ciolo et son pont." },
-      { x: 530, y: 350, texte: "Santa Maria di Leuca et son phare." },
-      { x: 300, y: 300, texte: "Gallipoli, la perle ionienne." },
-      { x: 200, y: 250, texte: "Porto Cesareo et ses plages." },
-      { x: 250, y: 200, texte: "La ville baroque de Nardò." },
-      { x: 400, y: 150, texte: "Lecce, la Florence du Sud." }
-    ];
+/* ================= 5) Données chasse =================
+   Coordonnées normalisées [0..1] (adaptées à tous écrans).
+*/
+const POIS = [
+  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86,y:0.52,info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs (1480)." },
+  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80,y:0.56,info:"Grande calanque turquoise, entourée de falaises." },
+  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74,y:0.60,info:"Thermes soufrés & architecture éclectique (Villa Sticchi)." },
+  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70,y:0.65,info:"Temple d’Athéna (légende), grotte Zinzulusa, épisode d’Énée." },
+  { key:"ciolo",         name:"Il Ciolo",                      x:0.64,y:0.75,info:"Petit fjord avec pont routier au-dessus de l’eau profonde." },
+  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60,y:0.88,info:"Phare haut & cascade monumentale au ‘finibus terrae’." },
+  { key:"gallipoli",     name:"Gallipoli",                     x:0.35,y:0.62,info:"Vieille ville sur îlot relié par pont ; Kallipolis." },
+  { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22,y:0.46,info:"Plages magnifiques & réserve marine." },
+  { key:"nardo",         name:"Nardò",                         x:0.28,y:0.50,info:"Centre baroque ; proximité de Porto Selvaggio." },
+  { key:"lecce",         name:"Lecce",                         x:0.53,y:0.28,info:"Baroque en pietra leccese : Santa Croce, Duomo, amphithéâtre." }
+];
 
-    const dialogueBox = document.getElementById("dialogue");
-    const hud = document.getElementById("hud");
+const player={ x:0.55, y:0.25, speed:0.0048, size:0.11 };   // Aracne (hirondelle), positions normalisées
+const collected=new Set();
+let currentIdx=0;  // étape active
 
-    // ----------------------------
-    // AFFICHAGE DU DIALOGUE
-    // ----------------------------
-    function showDialogue(text) {
-      dialogueBox.innerText = "🕷 Tarantula : " + text;
-      dialogueBox.style.display = "block";
-      setTimeout(() => { dialogueBox.style.display = "none"; }, 4000);
+/* Chemin animé (prochain segment seulement) */
+let dashOffset=0, lastTS=0;
+const PATH={ dash:[10,6], speed:120, color:'#7a4c25', width:3, cap:'round', join:'round' };
+
+/* ================= 6) HUD & bulle ================= */
+function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
+function refreshStars(){ scoreEl.textContent=collected.size; starsEl.innerHTML=''; for(let i=0;i<10;i++){ const im=new Image(); im.className='star'; im.src=starSVG(i<collected.size?"#d26f45":"#f0c9a7"); starsEl.appendChild(im);} }
+refreshStars();
+
+function showTarantulaAt(p,screenX,screenY){
+  bdTitle.textContent = "Tarantula — " + p.name.split(" — ")[0];
+  bdText.textContent  = p.info;
+  tarBox.style.left = Math.min(screenX + 12, window.innerWidth - 270) + 'px';
+  tarBox.style.top  = Math.max(12, screenY - 30) + 'px';
+  tarBox.classList.remove('hide'); tarBox.classList.add('show'); tarBox.style.display='flex';
+  clearTimeout(showTarantulaAt._t); showTarantulaAt._t = setTimeout(()=>hideTarantula(), 4200);
+}
+function hideTarantula(){ tarBox.classList.add('hide'); setTimeout(()=>{ tarBox.classList.remove('show'); tarBox.style.display='none'; },160); }
+tarBox.addEventListener('click', hideTarantula);
+
+/* ================= 7) Contrôles ================= */
+for(const el of document.querySelectorAll('.btn')){
+  const dx=parseFloat(el.dataset.dx), dy=parseFloat(el.dataset.dy);
+  let press=false,id=null;
+  const step=()=>{ if(!press) return;
+    player.x=Math.max(0,Math.min(1,player.x+dx*player.speed));
+    player.y=Math.max(0,Math.min(1,player.y+dy*player.speed));
+    id=requestAnimationFrame(step);
+  };
+  el.addEventListener('touchstart',e=>{press=true;step();e.preventDefault();},{passive:false});
+  el.addEventListener('touchend',()=>{press=false;cancelAnimationFrame(id);});
+}
+/* Drag direct */
+let dragging=false;
+canvas.addEventListener('touchstart',e=>{
+  const t=e.touches[0]; const bx=player.x*W, by=player.y*H;
+  if(Math.hypot(t.clientX-bx,t.clientY-by)<Math.min(W,H)*player.size*0.6){dragging=true; e.preventDefault();}
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  if(!dragging)return; const t=e.touches[0];
+  player.x=Math.max(0,Math.min(1,t.clientX/W));
+  player.y=Math.max(0,Math.min(1,t.clientY/H));
+  e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchend',()=>dragging=false);
+document.addEventListener('touchmove',e=>{
+  if(e.target.closest('.btn')||e.target.closest('canvas')) e.preventDefault();
+},{passive:false});
+
+/* ================= 8) Rendu ================= */
+function drawStarfish(cx,cy,R){
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
+  ctx.beginPath(); const pts=5,inner=R*0.45;
+  for(let i=0;i<pts*2;i++){const ang=(Math.PI/pts)*i - Math.PI/2; const r=(i%2===0)?R:inner; const x=cx+Math.cos(ang)*r; const y=cy+Math.sin(ang)*r; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);}
+  ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
+}
+
+function draw(ts){
+  if(ts){ if(!lastTS) lastTS=ts; const dt=Math.min(0.05,(ts-lastTS)/1000); lastTS=ts; dashOffset+=PATH.speed*dt; }
+
+  // Mise à l’échelle “letterbox”
+  const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
+  const scale=Math.min(W/mw,H/mh), dw=mw*scale, dh=mh*scale, ox=(W-dw)/2, oy=(H-dh)/2;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Carte
+  if (mapImg.complete && mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
+  else { ctx.fillStyle="#d9e6f2"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, ox+14, oy+24); }
+
+  // Segments déjà parcourus (trait brun plein)
+  ctx.save(); ctx.strokeStyle="#7a4c25"; ctx.lineWidth=4; ctx.lineCap="round"; ctx.lineJoin="round";
+  ctx.beginPath();
+  for(let i=0;i<Math.min(currentIdx,POIS.length-1);i++){
+    const a=POIS[i], b=POIS[i+1];
+    const ax=ox+a.x*dw, ay=oy+a.y*dh, bx=ox+b.x*dw, by=oy+b.y*dh;
+    const mx=(ax+bx)/2, my=(ay+by)/2 + ((i%2?1:-1)*8); // légère courbe
+    if(i===0) ctx.moveTo(ax,ay);
+    ctx.quadraticCurveTo(mx,my,bx,by);
+  }
+  ctx.stroke(); ctx.restore();
+
+  // Prochain segment animé (pointillé)
+  if(currentIdx < POIS.length-1){
+    const a=POIS[currentIdx], b=POIS[currentIdx+1];
+    const ax=ox+a.x*dw, ay=oy+a.y*dh, bx=ox+b.x*dw, by=oy+b.y*dh;
+    const mx=(ax+bx)/2, my=(ay+by)/2 + ((currentIdx%2?1:-1)*8);
+    ctx.save();
+    ctx.setLineDash(PATH.dash);
+    ctx.lineDashOffset = -dashOffset;
+    ctx.strokeStyle=PATH.color; ctx.lineWidth=PATH.width; ctx.lineCap=PATH.cap; ctx.lineJoin=PATH.join;
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.quadraticCurveTo(mx,my,bx,by); ctx.stroke();
+    ctx.restore();
+  }
+
+  // X sur étapes visitées + étoile visible pour l’étape active
+  for(let i=0;i<=currentIdx && i<POIS.length;i++){
+    const p=POIS[i]; const x=ox+p.x*dw, y=oy+p.y*dh;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(0.2); ctx.strokeStyle='#b04123'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(-8,-8); ctx.lineTo(8,8); ctx.moveTo(-8,8); ctx.lineTo(8,-8); ctx.stroke(); ctx.restore();
+  }
+  if(currentIdx < POIS.length){
+    const p=POIS[currentIdx]; const x=ox+p.x*dw, y=oy+p.y*dh;
+    drawStarfish(x, y-26, Math.max(18,Math.min(26,Math.min(W,H)*0.03)));
+  }
+
+  // Aracne (hirondelle)
+  const bw=Math.min(170,Math.max(90,dw*player.size)), bx=ox+player.x*dw, by=oy+player.y*dh;
+  if (birdImg.complete && birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2, by-bw/2, bw, bw);
+  else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx,by,bw*0.35,0,Math.PI*2); ctx.fill(); }
+
+  // Collision → passe à l’étape suivante + bulle
+  if(currentIdx < POIS.length){
+    const p=POIS[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
+    if(Math.hypot(bx-px,by-py)<44){
+      collected.add(p.key); refreshStars();
+      showTarantulaAt(p, px, py);
+      currentIdx++;
+      if(currentIdx===POIS.length){ setTimeout(()=>{ alert("🎉 Bravo ! 10/10 étoiles collectées."); }, 350); }
     }
+  }
+}
 
-    // ----------------------------
-    // DEMARRAGE DU JEU
-    // ----------------------------
-    function startGame() {
-      gameStarted = true;
-      document.getElementById("startBtn").style.display = "none";
-      document.getElementById("controls").style.display = "block";
-      loop();
-    }
+/* ================= 9) Boucle ================= */
+let running=false;
+function loop(ts){ if(!running) return; draw(ts); requestAnimationFrame(loop); }
 
-    // ----------------------------
-    // BOUCLE PRINCIPALE
-    // ----------------------------
-    function loop() {
-      if (!gameStarted) return;
+/* ================= 10) Démarrage ================= */
+function drawSplash(force){
+  resize();
+  if (mapImg.complete && mapImg.naturalWidth){
+    const mw=mapImg.naturalWidth, mh=mapImg.naturalHeight;
+    const scale=Math.min(W/mw,H/mh), dw=mw*scale, dh=mh*scale, ox=(W-dw)/2, oy=(H-dh)/2;
+    ctx.drawImage(mapImg,ox,oy,dw,dh);
+  } else if (force){
+    ctx.fillStyle="#d9e6f2"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, 14, 28);
+  }
+}
+startBtn.addEventListener('click', ()=>{
+  overlay.style.display='none';
+  touch.classList.add('show');
+  resize();
+  running=true;
+  requestAnimationFrame(loop);
+});
+startBtn.addEventListener('touchend', e=>{ e.preventDefault(); startBtn.click(); });
 
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-
-      // Carte
-      ctx.drawImage(mapImg, 0, 0, canvas.width, canvas.height);
-
-      // Dessiner le chemin en pointillés
-      drawTreasurePath();
-
-      // Étoiles collectées (HUD)
-      hud.innerText = "⭐ " + starsCollected + " / 10";
-
-      // Dessiner toutes les étapes déjà visitées
-      for (let i = 0; i < steps.length; i++) {
-        ctx.beginPath();
-        if (i < currentStep) {
-          ctx.fillStyle = "gold"; // Étoile collectée
-        } else {
-          ctx.fillStyle = "red"; // Prochaine étape
-        }
-        ctx.arc(steps[i].x, steps[i].y, 10, 0, Math.PI*2);
-        ctx.fill();
-        ctx.closePath();
-      }
-
-      // Joueur
-      ctx.drawImage(aracneImg, player.x, player.y, player.size, player.size);
-
-      requestAnimationFrame(loop);
-      checkCollision();
-    }
-
-    // ----------------------------
-    // CHEMIN EN POINTILLÉS
-    // ----------------------------
-    function drawTreasurePath() {
-      ctx.strokeStyle = "#000";
-      ctx.setLineDash([10, 10]);
-      ctx.beginPath();
-      ctx.moveTo(steps[0].x, steps[0].y);
-      for (let i = 1; i < steps.length; i++) {
-        ctx.lineTo(steps[i].x, steps[i].y);
-      }
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-
-    // ----------------------------
-    // COLLISIONS
-    // ----------------------------
-    function checkCollision() {
-      if (currentStep >= steps.length) return;
-      const step = steps[currentStep];
-      const dx = player.x - step.x;
-      const dy = player.y - step.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < 20) {
-        starsCollected++;
-        showDialogue(step.texte);
-        currentStep++;
-        if (currentStep >= steps.length) {
-          setTimeout(() => {
-            alert("🎉 Bravo ! Tu as découvert tous les secrets du Salento !");
-          }, 1000);
-        }
-      }
-    }
-
-    // ----------------------------
-    // MOUVEMENT
-    // ----------------------------
-    function move(dx,dy) {
-      player.x += dx * player.speed;
-      player.y += dy * player.speed;
-    }
-
-    // ----------------------------
-    // CONTROLES TACTILES
-    // ----------------------------
-    document.getElementById("up").addEventListener("touchstart", () => move(0,-1));
-    document.getElementById("down").addEventListener("touchstart", () => move(0,1));
-    document.getElementById("left").addEventListener("touchstart", () => move(-1,0));
-    document.getElementById("right").addEventListener("touchstart", () => move(1,0));
-
-    // Bouton démarrage
-    document.getElementById("startBtn").addEventListener("click", startGame);
-  </script>
+/* Empêche le scroll pendant le jeu sur iPhone */
+document.addEventListener('touchmove', e => {
+  if (e.target.closest('.btn') || e.target.closest('canvas')) e.preventDefault();
+}, {passive:false});
+</script>
 </body>
 </html>
