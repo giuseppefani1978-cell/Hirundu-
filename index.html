@@ -1,300 +1,160 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>HIRUNDU & ARACNÉ — Chasse au trésor du Salento</title>
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black" />
-<style>
-  /* ----- Base ----- */
-  html,body{height:100%;margin:0;background:#f6f1e1;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-  *{-webkit-tap-highlight-color:transparent}
-  .wrap{display:flex;flex-direction:column;height:100%}
-  .game{position:relative;flex:1;overflow:hidden}
-  canvas{width:100%;height:100%;display:block;background:#e2eef7;touch-action:none}
-
-  /* ----- Overlay (titre) ----- */
-  .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-           background:rgba(246,241,225,.82);backdrop-filter:blur(3px);z-index:20}
-  .card{width:min(560px,92vw);border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;
-        box-shadow:0 10px 26px rgba(0,0,0,.18);padding:18px;text-align:center}
-  .card h1{margin:0 0 6px 0;font-size:22px}
-  .card p{margin:6px 0 14px 0;opacity:.8}
-  .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700}
-
-  /* ----- HUD ----- */
-  .hud{position:absolute;left:10px;top:10px;background:rgba(255,248,220,.96);border:2px solid #c8b37a;
-       border-radius:10px;padding:8px 10px;font-size:14px;z-index:10}
-  .stars{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
-  .star{width:18px;height:18px;opacity:.95}
-
-  /* ----- Bulle BD d’Aracné ----- */
-  .arachneBox{position:absolute;display:none;align-items:flex-start;gap:8px;z-index:12;
-              transform-origin:left bottom;transition:transform .15s ease,opacity .15s ease}
-  .arachneBox.show{display:flex;opacity:1;transform:scale(1)}
-  .arachneBox.hide{opacity:0;transform:scale(.95)}
-  .arachneBox img{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#fff;border:2px solid #c8b37a;box-shadow:0 6px 14px rgba(0,0,0,.15)}
-  .bdBubble{max-width:min(320px,56vw);background:#fff;border:2px solid #c8b37a;border-radius:14px;
-            padding:10px 12px;box-shadow:0 8px 18px rgba(0,0,0,.15);position:relative;font-size:14px;line-height:1.25}
-  .bdBubble:after{content:"";position:absolute;left:-10px;bottom:10px;border-width:10px;border-style:solid;border-color:transparent #c8b37a transparent transparent}
-  .bdBubble:before{content:"";position:absolute;left:-8px;bottom:12px;border-width:8px;border-style:solid;border-color:transparent #fff transparent transparent}
-  .bdTitle{font-weight:700;margin-bottom:4px}
-
-  /* ----- Contrôles tactiles ----- */
-  .touch{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:14px;align-items:center;z-index:11}
-  .dpad{display:grid;grid-template-columns:72px 72px 72px;grid-template-rows:72px 72px 72px;gap:12px}
-  .btn{width:72px;height:72px;border-radius:14px;border:2px solid #c8b37a;background:#fff7de;
-       display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;font-weight:800;font-size:22px;box-shadow:0 3px 0 #c8b37a}
-  .btn:active{transform:translateY(1px)}
-
-  /* ----- Bandeau d’erreur (assets non trouvés) ----- */
-  .err{position:absolute;right:10px;top:10px;background:#ffefef;border:2px solid #d66;border-radius:10px;padding:8px 10px;font-size:12px;color:#900;z-index:30;max-width:min(320px,60vw)}
-  .err b{display:block;margin-bottom:4px}
-</style>
+  <meta charset="UTF-8" />
+  <title>Jeu Salento - Aracne et Tarantula</title>
+  <style>
+    body { margin: 0; background: #222; color: white; font-family: sans-serif; }
+    #gameCanvas { display: none; background: #000; width: 100%; height: 100vh; }
+    #hud { display: none; position: absolute; top: 10px; left: 10px; font-size: 20px; }
+    #controls { 
+      display: none; position: absolute; bottom: 20px; left: 50%; 
+      transform: translateX(-50%); 
+    }
+    .btn {
+      width: 60px; height: 60px; background: rgba(255,255,255,0.3);
+      border-radius: 50%; text-align: center; line-height: 60px; font-size: 30px;
+      margin: 5px; user-select: none;
+    }
+    #startScreen { 
+      display: flex; justify-content: center; align-items: center; 
+      flex-direction: column; height: 100vh; background: #333; color: white; 
+    }
+    #tarantulaBox {
+      display: none; position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); border: 2px solid #fff; padding: 10px; border-radius: 10px;
+      max-width: 300px; text-align: center; font-size: 16px;
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="game">
-    <!-- Overlay titre (carte visible derrière si elle charge) -->
-    <div class="overlay" id="overlay">
-      <div class="card">
-        <h1>HIRUNDU & ARACNÉ</h1>
-        <p>Chasse au trésor du Salento • Déplace l’hirondelle pour découvrir les lieux et collecter les étoiles de mer.</p>
-        <button id="startBtn">Démarrer le jeu</button>
-      </div>
+  <div id="startScreen">
+    <h1>🌍 Jeu du Salento</h1>
+    <p>Avec Aracne 🐦 et Tarantula 🕷️</p>
+    <button onclick="startGame()">Démarrer le jeu</button>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+  <div id="hud">⭐ 0 / 10</div>
+  <div id="tarantulaBox">Texte de Tarantula</div>
+
+  <div id="controls">
+    <div style="display:flex; justify-content:center;">
+      <div class="btn" ontouchstart="move('up')">⬆️</div>
     </div>
-
-    <!-- Bandeau d’erreur -->
-    <div class="err" id="err" style="display:none">
-      <b>⚠️ Problème d’assets</b>
-      <div id="errText"></div>
-    </div>
-
-    <canvas id="c"></canvas>
-
-    <div class="hud">
-      <div>Étoiles : <span id="score">0</span>/10</div>
-      <div class="stars" id="stars"></div>
-    </div>
-
-    <!-- Bulle BD d’Aracné -->
-    <div class="arachneBox" id="arachneBox">
-      <img id="arachneAvatar" alt="Aracné">
-      <div class="bdBubble">
-        <div class="bdTitle" id="bdTitle">Aracné</div>
-        <div id="bdText"></div>
-      </div>
-    </div>
-
-    <!-- D‑pad tactile -->
-    <div class="touch" id="touch">
-      <div class="dpad">
-        <div></div> <div class="btn" data-dx="0" data-dy="-1">↑</div> <div></div>
-        <div class="btn" data-dx="-1" data-dy="0">←</div> <div></div> <div class="btn" data-dx="1" data-dy="0">→</div>
-        <div></div> <div class="btn" data-dx="0" data-dy="1">↓</div> <div></div>
-      </div>
+    <div style="display:flex; justify-content:center;">
+      <div class="btn" ontouchstart="move('left')">⬅️</div>
+      <div class="btn" ontouchstart="move('down')">⬇️</div>
+      <div class="btn" ontouchstart="move('right')">➡️</div>
     </div>
   </div>
-</div>
 
-<script>
-/* ========= 1) ASSETS depuis /assets =========
-   Vérifie que tes fichiers existent et respectent la casse :
-   assets/salento-map.jpg  | assets/hirundu.png | assets/aracne.png
-*/
-const MAP_URL     = "assets/salento-map.jpeg";
-const HIRUNDU_URL = "assets/hirundu.png";
-const ARACNE_URL  = "assets/aracne.png";
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const hud = document.getElementById("hud");
+    const tarantulaBox = document.getElementById("tarantulaBox");
 
-/* ========= 2) Canvas / contexte ========= */
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-let W=0,H=0,dpr=1;
-function resize(){
-  dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
-  W=canvas.clientWidth=canvas.parentElement.clientWidth;
-  H=canvas.clientHeight=canvas.parentElement.clientHeight;
-  canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-}
-addEventListener('resize', resize);
-
-/* ========= 3) UI ========= */
-const overlay=document.getElementById('overlay');
-const startBtn=document.getElementById('startBtn');
-const touch=document.getElementById('touch');
-const scoreEl=document.getElementById('score'), starsEl=document.getElementById('stars');
-const araBox=document.getElementById('arachneBox'), araImg=document.getElementById('arachneAvatar'), bdTitle=document.getElementById('bdTitle'), bdText=document.getElementById('bdText');
-const errBox=document.getElementById('err'), errText=document.getElementById('errText');
-
-/* ========= 4) Chargement images avec diagnostics ========= */
-const mapImg=new Image(), birdImg=new Image(), spiderImg=new Image();
-mapImg.crossOrigin="anonymous"; birdImg.crossOrigin="anonymous"; spiderImg.crossOrigin="anonymous";
-
-const loadState={map:false,bird:false,spider:false,errs:[]};
-function onOK(which){ loadState[which]=true; maybePreDraw(); }
-function onERR(which,url,e){ const msg=`${which.toUpperCase()} introuvable : "${url}"`;
-  console.warn(msg,e); loadState.errs.push(msg); errText.innerHTML = loadState.errs.map(s=>`• ${s}`).join("<br>");
-  errBox.style.display='block'; maybePreDraw(true);
-}
-
-mapImg.onload = ()=>onOK('map');      mapImg.onerror=(e)=>onERR('map',MAP_URL,e);       mapImg.src=MAP_URL;
-birdImg.onload= ()=>onOK('bird');     birdImg.onerror=(e)=>onERR('bird',HIRUNDU_URL,e); birdImg.src=HIRUNDU_URL;
-spiderImg.onload=()=>onOK('spider');  spiderImg.onerror=(e)=>onERR('spider',ARACNE_URL,e); spiderImg.src=ARACNE_URL;
-
-araImg.src=ARACNE_URL;
-
-/* ========= 5) Données jeu ========= */
-const POIS=[
-  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86,y:0.52,info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs (1480)." },
-  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80,y:0.56,info:"Grande calanque turquoise, entourée de falaises." },
-  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74,y:0.60,info:"Thermes soufrés & architecture éclectique (Villa Sticchi)." },
-  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70,y:0.65,info:"Temple d’Athéna (légende), grotte Zinzulusa, épisode d’Énée." },
-  { key:"ciolo",         name:"Il Ciolo",                      x:0.64,y:0.75,info:"Petit fjord avec pont routier au‑dessus de l’eau profonde." },
-  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60,y:0.88,info:"Phare haut & cascade monumentale au ‘finibus terrae’." },
-  { key:"gallipoli",     name:"Gallipoli",                     x:0.35,y:0.62,info:"Vieille ville sur îlot relié par pont ; Kallipolis." },
-  { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22,y:0.46,info:"Plages magnifiques & réserve marine." },
-  { key:"nardo",         name:"Nardò",                         x:0.28,y:0.50,info:"Centre baroque ; proximité de Porto Selvaggio." },
-  { key:"lecce",         name:"Lecce",                         x:0.53,y:0.28,info:"Baroque en pietra leccese : Santa Croce, Duomo, amphithéâtre." }
-];
-
-const player={ x:0.55, y:0.25, speed:0.004, size:0.11 }; // positions normalisées [0..1]
-const collected=new Set();
-
-/* ========= 6) Outils UI ========= */
-function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
-function refreshStars(){ scoreEl.textContent=collected.size; starsEl.innerHTML=''; for(let i=0;i<10;i++){ const im=new Image(); im.className='star'; im.src=starSVG(i<collected.size?"#d26f45":"#f0c9a7"); starsEl.appendChild(im);} }
-refreshStars();
-
-function showArachneAt(p,screenX,screenY){
-  bdTitle.textContent="Aracné — "+p.name.split(" — ")[0];
-  bdText.textContent=p.info;
-  araBox.style.left=Math.min(screenX+12,window.innerWidth-270)+"px";
-  araBox.style.top=Math.max(12,screenY-30)+"px";
-  araBox.classList.remove('hide'); araBox.classList.add('show'); araBox.style.display='flex';
-  clearTimeout(showArachneAt._t); showArachneAt._t=setTimeout(()=>hideArachne(),4500);
-}
-function hideArachne(){ araBox.classList.add('hide'); setTimeout(()=>{ araBox.classList.remove('show'); araBox.style.display='none'; },160); }
-araBox.addEventListener('click', hideArachne);
-
-/* ========= 7) Contrôles (D‑pad + drag direct) ========= */
-for(const el of document.querySelectorAll('.btn')){
-  const dx=parseFloat(el.dataset.dx), dy=parseFloat(el.dataset.dy);
-  let press=false,id=null;
-  const step=()=>{ if(!press) return; player.x=Math.max(0,Math.min(1,player.x+dx*player.speed)); player.y=Math.max(0,Math.min(1,player.y+dy*player.speed)); id=requestAnimationFrame(step); };
-  el.addEventListener('touchstart',e=>{press=true;step();e.preventDefault();},{passive:false});
-  el.addEventListener('touchend',()=>{press=false;cancelAnimationFrame(id);});
-}
-let dragging=false;
-canvas.addEventListener('touchstart',e=>{
-  const t=e.touches[0]; const bx=player.x*W, by=player.y*H;
-  if(Math.hypot(t.clientX-bx,t.clientY-by)<Math.min(W,H)*player.size*0.6){dragging=true; e.preventDefault();}
-},{passive:false});
-canvas.addEventListener('touchmove',e=>{
-  if(!dragging) return;
-  const t=e.touches[0]; player.x=Math.max(0,Math.min(1,t.clientX/W)); player.y=Math.max(0,Math.min(1,t.clientY/H));
-  e.preventDefault();
-},{passive:false});
-canvas.addEventListener('touchend',()=>dragging=false);
-document.addEventListener('touchmove',e=>{ if(e.target.closest('.btn')||e.target.closest('canvas')) e.preventDefault(); },{passive:false});
-
-/* ========= 8) Rendu ========= */
-function drawStarfish(cx,cy,R){
-  ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
-  ctx.beginPath(); const pts=5,inner=R*0.45;
-  for(let i=0;i<pts*2;i++){const ang=(Math.PI/pts)*i - Math.PI/2; const r=(i%2===0)?R:inner; const x=cx+Math.cos(ang)*r; const y=cy+Math.sin(ang)*r; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);}
-  ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
-}
-
-function draw(){
-  // Mise à l’échelle “letterbox”
-  const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
-  const scale=Math.min(W/mw,H/mh), dw=mw*scale, dh=mh*scale, ox=(W-dw)/2, oy=(H-dh)/2;
-
-  ctx.clearRect(0,0,W,H);
-
-  // Carte ou placeholder
-  if (mapImg.complete && mapImg.naturalWidth){
-    ctx.drawImage(mapImg,ox,oy,dw,dh);
-  } else {
-    ctx.fillStyle="#d9e6f2"; ctx.fillRect(ox,oy,dw,dh);
-    ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée (vérifie assets/salento-map.jpg)", ox+14, oy+24);
-  }
-
-  // Tracé pointillé du parcours
-  ctx.save(); ctx.setLineDash([8,6]); ctx.strokeStyle='#7a4c25'; ctx.lineWidth=2; ctx.beginPath();
-  for (let i=0;i<POIS.length;i++){ const p=POIS[i]; const x=ox+p.x*dw, y=oy+p.y*dh; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
-  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-
-  // X et étoiles
-  for(const p of POIS){
-    const x=ox+p.x*dw, y=oy+p.y*dh;
-    ctx.save(); ctx.translate(x,y); ctx.rotate(0.2);
-    ctx.strokeStyle=collected.has(p.key)?'#e2552d':'#b04123'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(-8,-8); ctx.lineTo(8,8); ctx.moveTo(-8,8); ctx.lineTo(8,-8); ctx.stroke(); ctx.restore();
-    if(!collected.has(p.key)) drawStarfish(x, y-26, Math.max(18,Math.min(26,Math.min(W,H)*0.03)));
-  }
-
-  // Hirundu
-  const bw=Math.min(170,Math.max(90,dw*player.size));
-  const bx=ox+player.x*dw, by=oy+player.y*dh;
-  if (birdImg.complete && birdImg.naturalWidth){
-    ctx.drawImage(birdImg, bx-bw/2, by-bw/2, bw, bw);
-  } else {
-    // Placeholder Hirundu
-    ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx,by,bw*0.35,0,Math.PI*2); ctx.fill();
-  }
-
-  // Arachne dans le coin (avatar)
-  const sw=Math.min(100, Math.max(70, W*0.11));
-  if (spiderImg.complete && spiderImg.naturalWidth){
-    ctx.drawImage(spiderImg, W - sw - 10, 10, sw, sw);
-  } else {
-    ctx.fillStyle="#333"; ctx.fillRect(W - sw - 10, 10, sw, sw);
-  }
-
-  // Collisions → collecte + bulle
-  for(const p of POIS){
-    if(collected.has(p.key)) continue;
-    const px=ox+p.x*dw, py=oy+p.y*dh;
-    if(Math.hypot(bx-px,by-py)<44){
-      collected.add(p.key); refreshStars();
-      showArachneAt(p, px, py);
-      break;
+    let w, h;
+    function resize() {
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = w;
+      canvas.height = h;
     }
-  }
-}
+    window.onresize = resize;
 
-/* ========= 9) Boucle ========= */
-let running=false;
-function loop(){ if(!running) return; draw(); requestAnimationFrame(loop); }
+    // Images
+    const mapImg = new Image();
+    mapImg.src = "assets/salento-map.jpg";
 
-/* ========= 10) Démarrage ========= */
-function maybePreDraw(force){
-  // Afficher la carte en fond sous l’overlay dès que possible
-  resize();
-  ctx.clearRect(0,0,W,H);
-  if (mapImg.complete && mapImg.naturalWidth){
-    const mw=mapImg.naturalWidth, mh=mapImg.naturalHeight;
-    const scale=Math.min(W/mw,H/mh), dw=mw*scale, dh=mh*scale, ox=(W-dw)/2, oy=(H-dh)/2;
-    ctx.drawImage(mapImg,ox,oy,dw,dh);
-  } else if (force){
-    // placeholder si erreur
-    ctx.fillStyle="#d9e6f2"; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée (assets/salento-map.jpg ?)", 14, 28);
-  }
-}
-startBtn.addEventListener('click', ()=>{
-  overlay.style.display='none';
-  touch.style.display='flex';
-  resize();
-  running=true;
-  requestAnimationFrame(loop);
-});
-startBtn.addEventListener('touchend', e=>{ e.preventDefault(); startBtn.click(); });
+    const aracneImg = new Image();
+    aracneImg.src = "assets/hirundu.png"; // anciennement Hirundu, maintenant Aracne 🐦
 
-/* Première tentative d’affichage dès le chargement */
-maybePreDraw();
-</script>
+    const tarantulaImg = new Image();
+    tarantulaImg.src = "assets/aracne.png"; // anciennement Arachne, maintenant Tarantula 🕷️
+
+    // Joueur (Aracne)
+    let aracne = { x: 200, y: 200, size: 40, speed: 5 };
+
+    // Points d’intérêt avec étoiles
+    const POIS = [
+      {name: "Otranto",        x: 0.85, y: 0.25, info: "Cathédrale d’Otranto et ses mosaïques."},
+      {name: "Porto Badisco",  x: 0.9,  y: 0.3,  info: "Superbe calanque."},
+      {name: "Santa Cesarea",  x: 0.88, y: 0.35, info: "Station thermale réputée."},
+      {name: "Castro",         x: 0.87, y: 0.4,  info: "Temple d’Athéna selon la légende."},
+      {name: "Il Ciolo",       x: 0.9,  y: 0.45, info: "Calanque célèbre avec pont routier."},
+      {name: "Santa Maria di Leuca", x: 0.85, y: 0.55, info: "Phare et cascade aux confins des Pouilles."},
+      {name: "Gallipoli",      x: 0.5,  y: 0.35, info: "Ville sur la mer Ionienne."},
+      {name: "Porto Cesareo",  x: 0.4,  y: 0.25, info: "Plages magnifiques."},
+      {name: "Nardò",          x: 0.45, y: 0.3,  info: "Ville baroque."},
+      {name: "Lecce",          x: 0.6,  y: 0.15, info: "Florence du Sud."}
+    ];
+    let collected = 0;
+
+    function startGame() {
+      document.getElementById("startScreen").style.display = "none";
+      canvas.style.display = "block";
+      hud.style.display = "block";
+      document.getElementById("controls").style.display = "block";
+      resize();
+      running = true;
+      requestAnimationFrame(loop);
+    }
+
+    function move(dir) {
+      if (dir === "up") aracne.y -= aracne.speed;
+      if (dir === "down") aracne.y += aracne.speed;
+      if (dir === "left") aracne.x -= aracne.speed;
+      if (dir === "right") aracne.x += aracne.speed;
+    }
+
+    function loop() {
+      if (!running) return;
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(mapImg, 0, 0, w, h);
+
+      // Étoiles
+      POIS.forEach(p => {
+        if (!p.collected) {
+          const px = p.x * w;
+          const py = p.y * h;
+          ctx.fillStyle = "gold";
+          ctx.beginPath();
+          ctx.arc(px, py, 10, 0, Math.PI*2);
+          ctx.fill();
+        }
+      });
+
+      // Joueur (Aracne)
+      ctx.drawImage(aracneImg, aracne.x, aracne.y, aracne.size, aracne.size);
+
+      // Collision avec étoiles
+      POIS.forEach(p => {
+        if (!p.collected) {
+          const px = p.x * w, py = p.y * h;
+          if (Math.hypot(aracne.x - px, aracne.y - py) < 30) {
+            p.collected = true;
+            collected++;
+            hud.innerText = `⭐ ${collected} / 10`;
+            showTarantula(p.info);
+          }
+        }
+      });
+    }
+
+    function showTarantula(text) {
+      tarantulaBox.innerText = "🕷️ Tarantula : " + text;
+      tarantulaBox.style.display = "block";
+      setTimeout(()=>{ tarantulaBox.style.display="none"; }, 4000);
+    }
+
+    let running = false;
+  </script>
 </body>
 </html>
