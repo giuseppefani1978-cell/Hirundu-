@@ -125,9 +125,9 @@
 
 <script>
 /* ================== ASSETS ================== */
-const MAP_URL       = "assets/salento-map.jpeg";
-const BIRD_URL      = "assets/aracne .PNG";
-const TARANTULA_URL = "assets/tarantula .PNG";
+const MAP_URL       = "assets/salento-map.jpg";
+const BIRD_URL      = "assets/aracne.png";
+const TARANTULA_URL = "assets/tarantula.png";
 
 /* ================== CANVAS ================== */
 const canvas = document.getElementById('c');
@@ -171,12 +171,15 @@ function assetFail(who,url,showPlaceholder){
 }
 
 /* ============== DONNÉES CHASSE ============== */
+/* NB: on décale vers la droite 5 points de la côte Adriatique */
+const SHIFT_EAST = 0.04; // ajuste à 0.03–0.06 si besoin
+
 const POIS = [
-  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86,y:0.52,info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs (1480)." },
-  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80,y:0.56,info:"Grande calanque turquoise, entourée de falaises." },
-  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74,y:0.60,info:"Thermes soufrés & architecture éclectique (Villa Sticchi)." },
-  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70,y:0.65,info:"Temple d’Athéna (légende), grotte Zinzulusa, épisode d’Énée." },
-  { key:"ciolo",         name:"Il Ciolo",                      x:0.64,y:0.75,info:"Petit fjord avec pont routier au-dessus de l’eau profonde." },
+  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+SHIFT_EAST,y:0.52,info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs (1480)." },
+  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+SHIFT_EAST,y:0.56,info:"Grande calanque turquoise, entourée de falaises." },
+  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74+SHIFT_EAST,y:0.60,info:"Thermes soufrés & architecture éclectique (Villa Sticchi)." },
+  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70+SHIFT_EAST,y:0.65,info:"Temple d’Athéna (légende), grotte Zinzulusa, épisode d’Énée." },
+  { key:"ciolo",         name:"Il Ciolo",                      x:0.64+SHIFT_EAST,y:0.75,info:"Petit fjord avec pont routier au-dessus de l’eau profonde." },
   { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60,y:0.88,info:"Phare haut & cascade monumentale au ‘finibus terrae’." },
   { key:"gallipoli",     name:"Gallipoli",                     x:0.35,y:0.62,info:"Vieille ville sur îlot relié par pont ; Kallipolis." },
   { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22,y:0.46,info:"Plages magnifiques & réserve marine." },
@@ -191,6 +194,65 @@ let currentIdx = 0;
 /* ====== CHEMIN ANIMÉ ====== */
 let dashOffset=0, lastTS=0;
 const PATH={ dash:[10,6], speed:120, color:'#7a4c25', width:3, cap:'round', join:'round' };
+
+/* ====== LABELS (petit nom du lieu qui pop) ====== */
+const labels=[]; // {text,x,y,ttl}
+function spawnLabel(text, sx, sy){
+  labels.push({ text, x:sx, y:sy, ttl:1800 }); // ms
+}
+
+/* ====== FEUX D’ARTIFICE ====== */
+let fireworks=[]; // particles
+let finaleMode=false, finaleTimer=0;
+function launchFireworksBurst(cx,cy,parts=36){
+  for(let i=0;i<parts;i++){
+    const ang = (i/parts)*Math.PI*2, speed = 80 + Math.random()*120;
+    fireworks.push({
+      x:cx, y:cy,
+      vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
+      life:1.2+Math.random()*0.6, // seconds
+      age:0,
+      color:`hsl(${Math.floor(Math.random()*360)}, 80%, 60%)`
+    });
+  }
+}
+function updateFireworks(dt){
+  const g=140; // gravity
+  fireworks = fireworks.filter(p=>{
+    p.age += dt;
+    p.x += p.vx*dt;
+    p.y += p.vy*dt;
+    p.vy += g*dt*0.5;
+    return p.age < p.life;
+  });
+}
+function drawFireworks(){
+  ctx.save();
+  for(const p of fireworks){
+    const a = 1 - (p.age / p.life);
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 2.2, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+function triggerFinale(){
+  finaleMode = true;
+  finaleTimer = 4.5; // seconds
+  // 5 salves
+  for(let i=0;i<5;i++){
+    setTimeout(()=>{
+      launchFireworksBurst(
+        (0.15+0.7*Math.random())*W,
+        (0.15+0.5*Math.random())*(H-180),
+        42
+      );
+    }, i*500);
+  }
+  playFinale(); // musique de victoire
+}
 
 /* ====== HUD & BULLE ====== */
 function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
@@ -237,7 +299,7 @@ document.addEventListener('touchmove',e=>{
   if(e.target.closest('.btn')||e.target.closest('canvas')) e.preventDefault();
 },{passive:false});
 
-/* ======== MUSIQUE (boost + emphasis, iPhone OK) ======== */
+/* ======== MUSIQUE (boost + emphasis + finale, iPhone OK) ======== */
 let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null;
 function createAudioOnce(){
   if (audioCtx) return;
@@ -282,9 +344,10 @@ function ping(freq=440, amp=0.2){
   osc.start(t);
   osc.stop(t + 0.16);
 }
+// Mélodie de fond
 function playPhrase(){
   if (!musicOn || !audioCtx) return;
-  const notes = [262, 294, 330, 349, 392, 440, 494, 523]; // do-ré-mi-fa-sol-la-si-do
+  const notes = [262, 294, 330, 349, 392, 440, 494, 523];
   let t = audioCtx.currentTime;
   notes.forEach((freq)=>{
     scheduleSquare(freq, t, 0.26, 0.28);
@@ -303,15 +366,28 @@ function scheduleSquare(freq, start, dur=0.25, amp=0.26){
   osc.start(start);
   osc.stop(start + dur);
 }
-// emphasis sonore à la collecte
+// emphase sonore à la collecte
 function starEmphasis(){
   if (!audioCtx || !masterGain) return;
   const base = audioCtx.currentTime;
   [784,880,988,1175].forEach((f,i)=>{ scheduleSquare(f, base + i*0.08, 0.18, 0.42); });
 }
+// 🎺 Finale épique
+function playFinale(){
+  if (!audioCtx || !masterGain) return;
+  // Stop la boucle douce
+  if (loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
+  // Petite fanfare (arpèges + accord)
+  const t0 = audioCtx.currentTime + 0.05;
+  const arp = [523,659,784,988,1175]; // do5 mi5 sol5 si5 ré6
+  arp.forEach((f,i)=> scheduleSquare(f, t0 + i*0.12, 0.22, 0.45));
+  // Accord tenu
+  const chord = [523,659,784];
+  chord.forEach(f=> scheduleSquare(f, t0+0.75, 0.60, 0.40));
+}
 
 /* ============= RENDU & BOUCLE ============= */
-/* (option) réserve visuelle en bas pour le D-pad */
+/* réserve visuelle en bas pour le D-pad */
 const BOTTOM_UI_RESERVE = 180;
 
 function drawStarfish(cx,cy,R){
@@ -323,7 +399,8 @@ function drawStarfish(cx,cy,R){
 
 let running=false;
 function draw(ts){
-  if(ts){ if(!lastTS) lastTS=ts; const dt=Math.min(0.05,(ts-lastTS)/1000); lastTS=ts; dashOffset+=PATH.speed*dt; }
+  const now = ts? ts/1000 : 0;
+  if(ts){ if(!lastTS) lastTS=ts; const dt=Math.min(0.05,(ts-lastTS)/1000); lastTS=ts; dashOffset+=PATH.speed*dt; updateLabels(dt); if(finaleMode){ updateFireworks(dt); finaleTimer-=dt; if(finaleTimer<=0) finaleMode=false; } }
 
   // Mise à l’échelle avec espace en bas
   const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
@@ -384,13 +461,54 @@ function draw(ts){
     if(Math.hypot(bx-px,by-py)<44){
       collected.add(p.key); refreshStars();
       starEmphasis();                 // emphase sonore
-      showTarantulaAt(p, px, py);
+      showTarantulaAt(p, px, py);     // bulle
+      spawnLabel(p.name.split(" — ")[0], px, py-38); // label du lieu
       currentIdx++;
-      if(currentIdx===POIS.length){ setTimeout(()=>{ alert("🎉 Bravo ! 10/10 étoiles collectées."); }, 350); }
+      if(currentIdx===POIS.length){ 
+        triggerFinale(); // 🎇 + 🎺
+      }
     }
+  }
+
+  // Dessine labels
+  drawLabels();
+
+  // Dessine feux d’artifice si actif
+  if(finaleMode || fireworks.length>0){
+    drawFireworks();
   }
 }
 
+/* ===== Labels: update/draw ===== */
+function updateLabels(dt){
+  for(const L of labels){ L.ttl -= dt*1000; L.y -= 12*dt; }
+  for(let i=labels.length-1;i>=0;i--) if(labels[i].ttl<=0) labels.splice(i,1);
+}
+function drawLabels(){
+  ctx.save();
+  for(const L of labels){
+    const a = Math.max(0, Math.min(1, L.ttl/1800));
+    ctx.globalAlpha = a;
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 2;
+    ctx.font = "14px system-ui, -apple-system, sans-serif";
+    const pad=6;
+    const w = ctx.measureText(L.text).width + pad*2;
+    const h = 22;
+    ctx.beginPath();
+    ctx.roundRect(L.x - w/2, L.y - h, w, h, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#222";
+    ctx.globalAlpha = Math.min(1, a+0.2);
+    ctx.fillText(L.text, L.x - w/2 + pad, L.y - 6);
+  }
+  ctx.restore();
+}
+
+/* ============ BOUCLE ============ */
+let running=false;
 function loop(ts){ if(!running) return; draw(ts); requestAnimationFrame(loop); }
 
 /* ============== DÉMARRAGE ============== */
@@ -424,6 +542,21 @@ musicBtn.addEventListener('click', toggleMusic);
 document.addEventListener('touchmove', e => {
   if (e.target.closest('.btn') || e.target.closest('canvas')) e.preventDefault();
 }, {passive:false});
+
+/* === helpers canvas: roundRect (Safari friendly) === */
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    const rr = Math.min(r, w/2, h/2);
+    this.beginPath();
+    this.moveTo(x+rr, y);
+    this.arcTo(x+w, y,   x+w, y+h, rr);
+    this.arcTo(x+w, y+h, x,   y+h, rr);
+    this.arcTo(x,   y+h, x,   y,   rr);
+    this.arcTo(x,   y,   x+w, y,   rr);
+    this.closePath();
+    return this;
+  }
+}
 </script>
 </body>
 </html>
