@@ -233,14 +233,14 @@ document.addEventListener('touchmove',e=>{
   if(e.target.closest('.btn')||e.target.closest('canvas')) e.preventDefault();
 },{passive:false});
 
-/* ================= 8) Musique rétro (Web Audio) — FIX iPhone ================= */
+/* ================= 8) Musique rétro (Web Audio) — boost + SFX collecte ================= */
 let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null;
 
 function createAudioOnce(){
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   masterGain = audioCtx.createGain();
-  masterGain.gain.value = 0.28; // volume global (augmente si besoin)
+  masterGain.gain.value = 0.50; // 🔊 volume global (était ~0.28)
   masterGain.connect(audioCtx.destination);
 
   // Déverrouillage iOS : jouer un buffer quasi-silencieux
@@ -254,11 +254,8 @@ function createAudioOnce(){
 async function startMusic(){
   try{
     createAudioOnce();
-    if (audioCtx.state === 'suspended') {
-      await audioCtx.resume();   // important sur iOS
-    }
-    // petit beep de confirmation
-    ping(660, 0.12);
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    ping(700, 0.18); // petit bip de confirmation, un peu plus fort
     musicOn = true;
     musicBtn.textContent = "⏹️ Musique";
     playPhrase();
@@ -274,8 +271,7 @@ function stopMusic(){
 
 function toggleMusic(){ musicOn ? stopMusic() : startMusic(); }
 
-// petit bip court pour confirmer
-function ping(freq=440, amp=0.15){
+function ping(freq=440, amp=0.2){
   if (!audioCtx || !masterGain) return;
   const t = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
@@ -283,28 +279,28 @@ function ping(freq=440, amp=0.15){
   osc.type = 'square';
   osc.frequency.value = freq;
   g.gain.setValueAtTime(amp, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
   osc.connect(g).connect(masterGain);
   osc.start(t);
-  osc.stop(t + 0.14);
+  osc.stop(t + 0.16);
 }
 
-// joue la phrase "ta ta ta..." et reboucle
+// Mélodie de fond en boucle (un peu plus présente)
 function playPhrase(){
   if (!musicOn || !audioCtx) return;
-  const notes = [262, 294, 330, 349, 392, 440, 494, 523]; // do-ré-mi-fa-sol-la-si-do
+  const notes = [262, 294, 330, 349, 392, 440, 494, 523]; // do ré mi fa sol la si do
   let t = audioCtx.currentTime;
 
   notes.forEach((freq,i)=>{
-    scheduleSquare(freq, t, 0.24, 0.22); // (freq, start, dur, amp)
+    scheduleSquare(freq, t, 0.26, 0.28); // (freq, start, dur, amp)  ⬅️ amp plus haut
     t += 0.30;
   });
 
   loopTimer = setTimeout(playPhrase, 2800);
 }
 
-// planifie une note carrée type 8-bit
-function scheduleSquare(freq, start, dur=0.25, amp=0.22){
+// NOTE carrée type 8-bit
+function scheduleSquare(freq, start, dur=0.25, amp=0.26){
   const osc = audioCtx.createOscillator();
   const g   = audioCtx.createGain();
   osc.type = 'square';
@@ -316,6 +312,16 @@ function scheduleSquare(freq, start, dur=0.25, amp=0.22){
   osc.stop(start + dur);
 }
 
+// 🔔 Emphasis de collecte : petit “tatatata” ascendant, plus fort que la musique
+function starEmphasis(){
+  if (!audioCtx || !masterGain) return;
+  const base = audioCtx.currentTime;
+  const seq  = [784, 880, 988, 1175]; // sol5, la5, si5, ré6
+  seq.forEach((f, i)=>{
+    scheduleSquare(f, base + i*0.08, 0.18, 0.42); // amp bien audible
+  });
+}
+  
 /* ================= 9) Rendu & boucle ================= */
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
@@ -381,12 +387,17 @@ function draw(ts){
 
   // Collision → passe à l’étape suivante + bulle
   if(currentIdx < POIS.length){
-    const p=POIS[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
-    if(Math.hypot(bx-px,by-py)<44){
-      collected.add(p.key); refreshStars();
-      showTarantulaAt(p, px, py);
-      currentIdx++;
-      if(currentIdx===POIS.length){ setTimeout(()=>{ alert("🎉 Bravo ! 10/10 étoiles collectées."); }, 350); }
+  const p=POIS[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
+  if(Math.hypot(bx-px,by-py)<44){
+    collected.add(p.key); 
+    refreshStars();
+
+    starEmphasis();              // 🔊 emphase sonore à la collecte
+
+    showTarantulaAt(p, px, py);
+    currentIdx++;
+    if(currentIdx===POIS.length){ 
+      setTimeout(()=>{ alert("🎉 Bravo ! 10/10 étoiles collectées."); }, 350); 
     }
   }
 }
