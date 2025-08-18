@@ -35,16 +35,29 @@
   .stars{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
   .star{width:18px;height:18px;opacity:.95}
 
-  /* ===== Bulle Tarantula ===== */
+  /* ===== Bulle Tarantula (corrigée : avatar sans fond + bulle neutre) ===== */
   .tarBox{position:absolute;display:none;align-items:flex-start;gap:8px;z-index:12;
           transform-origin:left bottom;transition:transform .15s ease,opacity .15s ease}
   .tarBox.show{display:flex;opacity:1;transform:scale(1)}
   .tarBox.hide{opacity:0;transform:scale(.95)}
-  .tarBox img{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#fff;border:2px solid #c8b37a;box-shadow:0 6px 14px rgba(0,0,0,.15)}
-  .bdBubble{max-width:min(320px,56vw);background:#fff;border:2px solid #c8b37a;border-radius:14px;
-            padding:10px 12px;box-shadow:0 8px 18px rgba(0,0,0,.15);position:relative;font-size:14px;line-height:1.25}
-  .bdBubble:after{content:"";position:absolute;left:-10px;bottom:10px;border-width:10px;border-style:solid;border-color:transparent #c8b37a transparent transparent}
-  .bdBubble:before{content:"";position:absolute;left:-8px;bottom:12px;border-width:8px;border-style:solid;border-color:transparent #fff transparent transparent}
+
+  /* AVATAR TARANTULA SANS FOND/BORDURE */
+  .tarBox img{
+    width:64px;height:64px;object-fit:contain;
+    background:transparent !important;border:none !important;border-radius:0 !important;box-shadow:none !important;
+  }
+
+  /* BULLE NEUTRE */
+  .bdBubble{
+    max-width:min(320px,56vw);background:#fff;border:1px solid #bbb;border-radius:14px;
+    padding:10px 12px;box-shadow:0 4px 10px rgba(0,0,0,.12);position:relative;font-size:14px;line-height:1.25
+  }
+  .bdBubble:after{
+    content:"";position:absolute;left:-10px;bottom:10px;border-width:10px;border-style:solid;border-color:transparent #bbb transparent transparent
+  }
+  .bdBubble:before{
+    content:"";position:absolute;left:-9px;bottom:11px;border-width:9px;border-style:solid;border-color:transparent #fff transparent transparent
+  }
   .bdTitle{font-weight:700;margin-bottom:4px}
 
   /* ===== D-pad tactile ===== */
@@ -54,6 +67,12 @@
   .btn{width:72px;height:72px;border-radius:14px;border:2px solid #c8b37a;background:#fff7de;
        display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;font-weight:800;font-size:22px;box-shadow:0 3px 0 #c8b37a}
   .btn:active{transform:translateY(1px)}
+
+  /* ===== Bouton musique ===== */
+  #musicBtn{
+    position:absolute;top:10px;right:10px;z-index:15;
+    background:#ffe8a6;border:2px solid #c8b37a;border-radius:10px;padding:8px 12px;font-weight:700;
+  }
 
   /* ===== Bandeau d’erreur assets ===== */
   .err{position:absolute;right:10px;top:10px;background:#ffefef;border:2px solid #d66;border-radius:10px;padding:8px 10px;font-size:12px;color:#900;z-index:30;max-width:min(320px,60vw)}
@@ -71,6 +90,8 @@
         <button id="startBtn">Démarrer</button>
       </div>
     </div>
+
+    <button id="musicBtn" style="display:none">🎵 Musique</button>
 
     <div class="err" id="err" style="display:none">
       <b>⚠️ Problème d’assets</b>
@@ -104,9 +125,9 @@
 
 <script>
 /* ================= 1) ASSETS ================= */
-const MAP_URL      = "assets/salento-map.jpeg";  // Carte
-const BIRD_URL     = "assets/aracne .PNG";       // Aracne (hirondelle)
-const TARANTULA_URL= "assets/tarantula .PNG";    // Tarantula (araignée)
+const MAP_URL      = "assets/salento-map.jpg";  // Carte
+const BIRD_URL     = "assets/aracne .png";       // Aracne (hirondelle)
+const TARANTULA_URL= "assets/tarantula .png";    // Tarantula (araignée)
 
 /* ================= 2) Canvas ================= */
 const canvas = document.getElementById('c');
@@ -127,6 +148,7 @@ const touch=document.getElementById('touch');
 const scoreEl=document.getElementById('score'), starsEl=document.getElementById('stars');
 const tarBox=document.getElementById('tarBox'), tarAvatar=document.getElementById('tarAvatar'), bdTitle=document.getElementById('bdTitle'), bdText=document.getElementById('bdText');
 const errBox=document.getElementById('err'), errText=document.getElementById('errText');
+const musicBtn=document.getElementById('musicBtn');
 tarAvatar.src=TARANTULA_URL;
 
 /* ================= 4) Images (préchargement + diagnostics) ================= */
@@ -143,9 +165,7 @@ function assetFail(who,url,showPlaceholder){
   if(showPlaceholder) drawSplash(true);
 }
 
-/* ================= 5) Données chasse =================
-   Coordonnées normalisées [0..1] (adaptées à tous écrans).
-*/
+/* ================= 5) Données chasse ================= */
 const POIS = [
   { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86,y:0.52,info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs (1480)." },
   { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80,y:0.56,info:"Grande calanque turquoise, entourée de falaises." },
@@ -212,7 +232,49 @@ document.addEventListener('touchmove',e=>{
   if(e.target.closest('.btn')||e.target.closest('canvas')) e.preventDefault();
 },{passive:false});
 
-/* ================= 8) Rendu ================= */
+/* ================= 8) Musique rétro (Web Audio) ================= */
+let audioCtx=null, musicOn=false, loopTimer=null;
+function startMusic(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  } else if (audioCtx.state === 'suspended'){
+    audioCtx.resume();
+  }
+  musicOn = true;
+  playPhrase();
+  musicBtn.textContent = "⏹️ Musique";
+}
+function stopMusic(){
+  musicOn = false;
+  if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
+  if(audioCtx && audioCtx.state!=="closed"){ audioCtx.suspend(); }
+  musicBtn.textContent = "🎵 Musique";
+}
+function toggleMusic(){
+  if(!musicOn) startMusic(); else stopMusic();
+}
+function playPhrase(){
+  if(!musicOn || !audioCtx) return;
+  // Petite suite "ta ta ta..." (do ré mi fa sol la si do)
+  const notes=[262,294,330,349,392,440,494,523];
+  let t=audioCtx.currentTime;
+  notes.forEach((freq,i)=>{
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    osc.type="square";
+    osc.frequency.value=freq;
+    gain.gain.setValueAtTime(0.12,t);
+    gain.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t+0.25);
+    t+=0.3; // intervalle entre "ta"
+  });
+  // rejoue la phrase dans ~2.8s
+  loopTimer=setTimeout(playPhrase, 2800);
+}
+
+/* ================= 9) Rendu ================= */
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
   ctx.beginPath(); const pts=5,inner=R*0.45;
@@ -220,6 +282,9 @@ function drawStarfish(cx,cy,R){
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
 
+const collected=new Set();
+let currentIdx=0;  // étape active
+let running=false;
 function draw(ts){
   if(ts){ if(!lastTS) lastTS=ts; const dt=Math.min(0.05,(ts-lastTS)/1000); lastTS=ts; dashOffset+=PATH.speed*dt; }
 
@@ -286,8 +351,6 @@ function draw(ts){
   }
 }
 
-/* ================= 9) Boucle ================= */
-let running=false;
 function loop(ts){ if(!running) return; draw(ts); requestAnimationFrame(loop); }
 
 /* ================= 10) Démarrage ================= */
@@ -302,19 +365,29 @@ function drawSplash(force){
     ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, 14, 28);
   }
 }
+
 startBtn.addEventListener('click', ()=>{
   overlay.style.display='none';
   touch.classList.add('show');
+  musicBtn.style.display='inline-block'; // montrer le bouton musique
+  // iOS exige une interaction utilisateur → on lance la musique ici (et on laisse le bouton pour on/off)
+  startMusic();
   resize();
   running=true;
   requestAnimationFrame(loop);
 });
 startBtn.addEventListener('touchend', e=>{ e.preventDefault(); startBtn.click(); });
 
+musicBtn.addEventListener('click', toggleMusic);
+
 /* Empêche le scroll pendant le jeu sur iPhone */
 document.addEventListener('touchmove', e => {
   if (e.target.closest('.btn') || e.target.closest('canvas')) e.preventDefault();
 }, {passive:false});
+
+/* ====== Données nécessaires au rendu (après fonctions) ====== */
+const POIS = POIS; // (déjà défini plus haut)
+const player = player; // (déjà défini plus haut)
 </script>
 </body>
 </html>
