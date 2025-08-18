@@ -9,7 +9,7 @@
   html,body{height:100%;margin:0;background:#f6f1e1;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
   *{-webkit-tap-highlight-color:transparent}
   .wrap{display:flex;flex-direction:column;height:100%}
-  .game{position:relative;flex:1;overflow:hidden;min-height:100vh} /* <-- important iPhone */
+  .game{position:relative;flex:1;overflow:hidden}
   canvas{width:100%;height:100%;display:block;background:#e2eef7;touch-action:none}
 
   /* ===== Overlay ===== */
@@ -17,22 +17,30 @@
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     background:rgba(246,241,225,.84);backdrop-filter:blur(3px);z-index:30;pointer-events:auto
   }
-  .card{width:min(560px,92vw);border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;box-shadow:0 10px 26px rgba(0,0,0,.18);padding:18px;text-align:center}
+  .card{
+    width:min(560px,92vw);border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;
+    box-shadow:0 10px 26px rgba(0,0,0,.18);padding:18px;text-align:center
+  }
   .card h1{margin:0 0 6px 0;font-size:22px}
   .card p{margin:6px 0 14px 0;opacity:.82}
   .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;pointer-events:auto}
 
   /* ===== HUD ===== */
-  .hud{position:absolute;left:10px;top:10px;background:rgba(255,248,220,.96);border:2px solid #c8b37a;border-radius:10px;padding:8px 10px;font-size:14px;z-index:12}
+  .hud{
+    position:absolute;left:10px;top:10px;background:rgba(255,248,220,.96);
+    border:2px solid #c8b37a;border-radius:10px;padding:8px 10px;font-size:14px;z-index:12
+  }
   .stars{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
   .star{width:18px;height:18px;opacity:.95}
 
   /* ===== Bulle Tarantula ===== */
-  .tarBox{position:absolute;display:none;align-items:flex-start;gap:8px;z-index:20;transform-origin:left bottom;transition:transform .15s ease,opacity .15s ease}
+  .tarBox{position:absolute;display:none;align-items:flex-start;gap:8px;z-index:20;
+          transform-origin:left bottom;transition:transform .15s ease,opacity .15s ease}
   .tarBox.show{display:flex;opacity:1;transform:scale(1)}
   .tarBox.hide{opacity:0;transform:scale(.95)}
   .tarBox img{width:64px;height:64px;object-fit:contain;background:transparent !important;border:none !important;border-radius:0 !important;box-shadow:none !important;}
-  .bdBubble{max-width:min(320px,56vw);background:#fff;border:1px solid #bbb;border-radius:14px;padding:10px 12px;box-shadow:0 4px 10px rgba(0,0,0,.12);position:relative;font-size:14px;line-height:1.25}
+  .bdBubble{max-width:min(320px,56vw);background:#fff;border:1px solid #bbb;border-radius:14px;
+            padding:10px 12px;box-shadow:0 4px 10px rgba(0,0,0,.12);position:relative;font-size:14px;line-height:1.25}
   .bdBubble:after{content:"";position:absolute;left:-10px;bottom:10px;border-width:10px;border-style:solid;border-color:transparent #bbb transparent transparent}
   .bdBubble:before{content:"";position:absolute;left:-9px;bottom:11px;border-width:9px;border-style:solid;border-color:transparent #fff transparent transparent}
   .bdTitle{font-weight:700;margin-bottom:4px}
@@ -41,16 +49,23 @@
   .touch{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:none;gap:14px;align-items:center;z-index:18}
   .touch.show{display:flex}
   .dpad{display:grid;grid-template-columns:72px 72px 72px;grid-template-rows:72px 72px 72px;gap:12px}
-  .btn{width:72px;height:72px;border-radius:14px;border:2px solid #c8b37a;background:#fff7de;display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;font-weight:800;font-size:22px;box-shadow:0 3px 0 #c8b37a}
+  .btn{width:72px;height:72px;border-radius:14px;border:2px solid #c8b37a;background:#fff7de;
+       display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;font-weight:800;font-size:22px;box-shadow:0 3px 0 #c8b37a}
   .btn:active{transform:translateY(1px)}
 
   /* ===== Bouton Musique ===== */
-  #musicBtn{position:absolute;top:10px;right:10px;z-index:22;background:#ffe8a6;border:2px solid #c8b37a;border-radius:10px;padding:8px 12px;font-weight:700;display:none}
+  #musicBtn{
+    position:absolute;top:10px;right:10px;z-index:22;
+    background:#ffe8a6;border:2px solid #c8b37a;border-radius:10px;padding:8px 12px;font-weight:700;display:none
+  }
 
-  /* ===== Erreurs assets & Debug ===== */
+  /* ===== Erreurs assets ===== */
   .err{position:absolute;right:10px;top:10px;background:#ffefef;border:2px solid #d66;border-radius:10px;padding:8px 10px;font-size:12px;color:#900;z-index:40;max-width:min(320px,60vw)}
   .err b{display:block;margin-bottom:4px}
-  #debugBox{position:fixed;left:10px;bottom:10px;z-index:9999;background:#ffefef;border:2px solid #d66;padding:8px 10px;border-radius:8px;font:12px/1.3 system-ui;max-width:80vw;display:none}
+
+  /* ===== Debug ===== */
+  #debugBox{position:fixed;left:10px;bottom:10px;z-index:9999;background:#ffefef;border:2px solid #d66;
+    padding:8px 10px;border-radius:8px;font:12px/1.3 system-ui;max-width:80vw;display:none}
 </style>
 </head>
 <body>
@@ -61,21 +76,31 @@
       <div class="card">
         <h1>Salento — Aracne & Tarantula</h1>
         <p>Collecte les 10 étoiles et découvre les lieux secrets.</p>
+        <!-- Bouton blindé -->
         <button id="startBtn" type="button" onclick="window.startGame && window.startGame()">Démarrer</button>
       </div>
     </div>
 
     <button id="musicBtn">🎵 Musique</button>
 
-    <div class="err" id="err" style="display:none"><b>⚠️ Problème d’assets</b><div id="errText"></div></div>
+    <div class="err" id="err" style="display:none">
+      <b>⚠️ Problème d’assets</b>
+      <div id="errText"></div>
+    </div>
 
     <canvas id="c"></canvas>
 
-    <div class="hud"><div>Étoiles : <span id="score">0</span>/10</div><div class="stars" id="stars"></div></div>
+    <div class="hud">
+      <div>Étoiles : <span id="score">0</span>/10</div>
+      <div class="stars" id="stars"></div>
+    </div>
 
     <div class="tarBox" id="tarBox">
       <img id="tarAvatar" alt="Tarantula">
-      <div class="bdBubble"><div class="bdTitle" id="bdTitle">Tarantula</div><div id="bdText"></div></div>
+      <div class="bdBubble">
+        <div class="bdTitle" id="bdTitle">Tarantula</div>
+        <div id="bdText"></div>
+      </div>
     </div>
 
     <div class="touch" id="touch">
@@ -91,62 +116,55 @@
 
 <script>
 /* -------------------------------------------------------
-   BOOT BOUTON DEMARRER (robuste)
+   BOOT BOUTON DEMARRER (robuste, appelle le jeu si prêt)
 --------------------------------------------------------*/
 window.startGame = function(){
   try{
-    var ov=document.getElementById('overlay'); if(ov) ov.style.display='none';
-    var tch=document.getElementById('touch'); if(tch) tch.classList.add('show');
-    var m=document.getElementById('musicBtn'); if(m) m.style.display='inline-block';
-    if (typeof startMusic==='function') startMusic(); // iOS: geste utilisateur
-    if (typeof resize==='function') resize();
-    window.running=true; window.finale=false;
-    if (typeof loop==='function') requestAnimationFrame(loop);
-  }catch(err){ alert('Erreur au démarrage: '+err.message); }
+    var ov = document.getElementById('overlay'); if (ov) ov.style.display = 'none';
+    var tch = document.getElementById('touch');   if (tch) tch.classList.add('show');
+    var m = document.getElementById('musicBtn');  if (m) m.style.display = 'inline-block';
+    if (typeof startMusic === 'function') startMusic(); // iOS: geste utilisateur
+    if (typeof resize === 'function') resize();
+    window.running = true;
+    if (typeof loop === 'function') requestAnimationFrame(loop);
+  }catch(e){ alert('Erreur au démarrage: '+e.message); }
 };
 
-/* ---------- Debug écran ---------- */
+/* ---------- Debug (affiche erreurs JS à l'écran) ---------- */
 function debug(msg){const box=document.getElementById('debugBox');box.style.display='block';box.innerHTML+=(box.innerHTML?'<br>':'')+'⚠️ '+msg;}
 window.addEventListener('error',e=>debug(e.message));
-window.addEventListener('unhandledrejection',e=>debug((e.reason&&e.reason.message)||String(e.reason)));
+window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message?e.reason.message:e.reason));
 
 /* ================== ASSETS ================== */
-const MAP_URL="assets/salento-map.jpeg";
-const BIRD_URL="assets/aracne .PNG";      // Aracne (hirondelle)
-const TARANTULA_URL="assets/tarantula .PNG"; // Tarantula (araignée)
+/* ⚠️ On garde TES chemins exacts, y compris l’extension et les espaces */
+const MAP_URL       = "assets/salento-map.jpeg";
+const BIRD_URL      = "assets/aracne .PNG";
+const TARANTULA_URL = "assets/tarantula .PNG";
 
 /* ================== CANVAS ================== */
-const canvas=document.getElementById('c'); const ctx=canvas.getContext('2d');
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
 let W=0,H=0,dpr=1;
 function resize(){
-  dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
-  // Mesure robuste de la zone de jeu
-  const parent = canvas.parentElement;
-  const rect = parent ? parent.getBoundingClientRect() : {width:window.innerWidth, height:window.innerHeight};
-  W = Math.max(1, Math.floor(rect.width));
-  H = Math.max(1, Math.floor(rect.height));
-  // Fallback iPhone si rect renvoie 0
-  if (!W || !H) { W = window.innerWidth; H = window.innerHeight; }
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  canvas.width = Math.max(1, Math.floor(W * dpr));
-  canvas.height = Math.max(1, Math.floor(H * dpr));
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+  dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+  W=canvas.clientWidth=canvas.parentElement.clientWidth;
+  H=canvas.clientHeight=canvas.parentElement.clientHeight;
+  canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 resize(); addEventListener('resize', resize);
 
 /* ================== UI REFS ================== */
-const touch=document.getElementById('touch');
-const scoreEl=document.getElementById('score');
-const starsEl=document.getElementById('stars');
-const tarBox=document.getElementById('tarBox');
-const tarAvatar=document.getElementById('tarAvatar');
-const bdTitle=document.getElementById('bdTitle');
-const bdText=document.getElementById('bdText');
-const errBox=document.getElementById('err');
-const errText=document.getElementById('errText');
-const musicBtn=document.getElementById('musicBtn');
-tarAvatar.src=TARANTULA_URL;
+const touch    = document.getElementById('touch');
+const scoreEl  = document.getElementById('score');
+const starsEl  = document.getElementById('stars');
+const tarBox   = document.getElementById('tarBox');
+const tarAvatar= document.getElementById('tarAvatar');
+const bdTitle  = document.getElementById('bdTitle');
+const bdText   = document.getElementById('bdText');
+const errBox   = document.getElementById('err');
+const errText  = document.getElementById('errText');
+const musicBtn = document.getElementById('musicBtn');
+tarAvatar.src  = TARANTULA_URL;
 
 /* ================== IMAGES ================== */
 const mapImg=new Image(), birdImg=new Image(), spiderImg=new Image();
@@ -162,17 +180,18 @@ function assetFail(who,url,showPlaceholder){
 }
 
 /* ============== DONNÉES CHASSE ============== */
+const SHIFT_EAST = 0.04;
 const POIS = [
-  { key:"otranto",      name:"Otranto — Cathédrale",         x:0.9776, y:0.4650, info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs." },
-  { key:"portobadisco", name:"Porto Badisco — Calanque",     x:1.0000, y:0.4550, info:"Grande calanque turquoise entourée de falaises." },
-  { key:"santacesarea", name:"Santa Cesarea Terme",          x:0.7800, y:0.6000, info:"Thermes soufrés & Villa Sticchi." },
-  { key:"castro",       name:"Castro — Castrum Minervae",    x:0.8843, y:0.6542, info:"Temple d’Athéna (légende), grotte Zinzulusa." },
-  { key:"ciolo",        name:"Il Ciolo",                     x:0.8475, y:0.7143, info:"Petit fjord + pont routier." },
-  { key:"leuca",        name:"Santa Maria di Leuca",         x:0.8193, y:0.9275, info:"Phare haut & cascade monumentale." },
-  { key:"gallipoli",    name:"Gallipoli",                    x:0.2514, y:0.6335, info:"Vieille ville sur îlot relié par pont." },
-  { key:"portocesareo", name:"Porto Cesareo",                x:0.2200, y:0.4600, info:"Plages magnifiques & réserve marine." },
-  { key:"nardo",        name:"Nardò",                        x:0.3431, y:0.4800, info:"Centre baroque ; Porto Selvaggio." },
-  { key:"lecce",        name:"Lecce",                        x:0.5300, y:0.2800, info:"Baroque en pietra leccese." }
+  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+SHIFT_EAST,y:0.52,info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs." },
+  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+SHIFT_EAST,y:0.56,info:"Grande calanque turquoise entourée de falaises." },
+  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74+SHIFT_EAST,y:0.60,info:"Thermes soufrés & Villa Sticchi." },
+  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70+SHIFT_EAST,y:0.65,info:"Temple d’Athéna (légende), grotte Zinzulusa." },
+  { key:"ciolo",         name:"Il Ciolo",                      x:0.64+SHIFT_EAST,y:0.75,info:"Petit fjord + pont routier." },
+  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60,y:0.88,info:"Phare haut & cascade monumentale." },
+  { key:"gallipoli",     name:"Gallipoli",                     x:0.35,y:0.62,info:"Vieille ville sur îlot relié par pont." },
+  { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22,y:0.46,info:"Plages magnifiques & réserve marine." },
+  { key:"nardo",         name:"Nardò",                         x:0.28,y:0.50,info:"Centre baroque ; Porto Selvaggio." },
+  { key:"lecce",         name:"Lecce",                         x:0.53,y:0.28,info:"Baroque en pietra leccese." }
 ];
 
 const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 }; // normalisé [0..1]
@@ -183,24 +202,36 @@ let currentIdx = 0;
 let dashOffset=0, lastTS=0, frameDT=0;
 const PATH={ dash:[10,6], speed:120, color:'#7a4c25', width:3, cap:'round', join:'round' };
 
-/* ====== LABELS ====== */
+/* ====== LABELS (noms des lieux) ====== */
 const labels=[]; // {text,x,y,ttl}
-function spawnLabel(text,x,y){ labels.push({text,x,y,ttl:1800}); }
-function updateLabels(dt){ for(const L of labels){ L.ttl -= dt*1000; L.y -= 12*dt; } for(let i=labels.length-1;i>=0;i--) if(labels[i].ttl<=0) labels.splice(i,1); }
+function spawnLabel(text, x, y){ labels.push({text, x, y, ttl:1800}); }
+function updateLabels(dt){
+  for(const L of labels){ L.ttl -= dt*1000; L.y -= 12*dt; }
+  for(let i=labels.length-1;i>=0;i--) if(labels[i].ttl<=0) labels.splice(i,1);
+}
 function drawLabels(){
   ctx.save();
   for(const L of labels){
-    const a=Math.max(0,Math.min(1,L.ttl/1800));
-    ctx.globalAlpha=a; ctx.fillStyle="rgba(255,255,255,0.95)"; ctx.strokeStyle="rgba(0,0,0,0.25)"; ctx.lineWidth=2;
-    ctx.font="14px system-ui, -apple-system, sans-serif"; ctx.textAlign="center";
-    const pad=6, w=ctx.measureText(L.text).width+pad*2, h=22;
-    roundRect(ctx, L.x - w/2, L.y - h, w, h, 8); ctx.fill(); ctx.stroke();
-    ctx.fillStyle="#222"; ctx.globalAlpha=Math.min(1,a+0.2); ctx.fillText(L.text, L.x, L.y-6);
+    const a = Math.max(0, Math.min(1, L.ttl/1800));
+    ctx.globalAlpha = a;
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 2;
+    ctx.font = "14px system-ui, -apple-system, sans-serif";
+    ctx.textAlign="center";
+    const pad=6;
+    const w = ctx.measureText(L.text).width + pad*2;
+    const h = 22;
+    roundRect(ctx, L.x - w/2, L.y - h, w, h, 8);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#222";
+    ctx.globalAlpha = Math.min(1, a+0.2);
+    ctx.fillText(L.text, L.x, L.y - 6);
   }
   ctx.restore();
 }
 
-/* ====== FEUX D’ARTIFICE & FINALE ====== */
+/* ====== FEUX D’ARTIFICE + FINALE DANSANTE ====== */
 let fireworks=[]; // particles: {x,y,vx,vy,life,age,color,baseSize}
 let finale=false, finaleTimer=0, finaleZoom=1, dancePhase=0;
 let danceBird={x:0,y:0,scale:1,angle:0}, danceSpider={x:0,y:0,scale:1,angle:0};
@@ -221,13 +252,13 @@ function launchFireworksBurst(cx,cy,parts=38, big=false){
 function updateFireworks(dt){
   const g=140;
   fireworks=fireworks.filter(p=>{
-    p.age+=dt;
-    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=g*dt*0.5;
+    p.age+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=g*dt*0.5;
     return p.age<p.life;
   });
 }
 function drawFireworks(){
   ctx.save();
+  // Zoom global pendant la finale pour effet spectaculaire
   if(finale){
     const cx=W/2, cy=(H-UI_BOTTOM)/2;
     ctx.translate(cx,cy); ctx.scale(finaleZoom,finaleZoom); ctx.translate(-cx,-cy);
@@ -254,53 +285,103 @@ function triggerFireworksShow(){
   });
 }
 
-/* ====== MUSIQUE: fond + collecte + finale longue ====== */
+/* ======== MUSIQUE (fond + emphasis + FINALE LONGUE) ======== */
 let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null, finaleLoopTimer=null;
-function createAudioOnce(){ if(audioCtx) return; audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  masterGain=audioCtx.createGain(); masterGain.gain.value=0.55; masterGain.connect(audioCtx.destination);
-  const buffer=audioCtx.createBuffer(1,1,22050); const src=audioCtx.createBufferSource(); src.buffer=buffer; src.connect(masterGain); src.start(0);
+function createAudioOnce(){
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.55; // volume global un peu plus fort
+  masterGain.connect(audioCtx.destination);
+  // déverrouillage iOS
+  const buffer = audioCtx.createBuffer(1, 1, 22050);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer; src.connect(masterGain); src.start(0);
 }
-async function startMusic(){ try{ createAudioOnce(); if(audioCtx.state==='suspended') await audioCtx.resume(); ping(700,0.18); musicOn=true; musicBtn.textContent="⏹️ Musique"; playPhrase(); }catch(e){ console.warn(e); } }
-function stopMusic(){ musicOn=false; if(loopTimer){clearTimeout(loopTimer); loopTimer=null;} if(audioCtx&&audioCtx.state!=="closed"){ audioCtx.suspend(); } musicBtn.textContent="🎵 Musique"; }
-function toggleMusic(){ musicOn?stopMusic():startMusic(); }
+async function startMusic(){
+  try{
+    createAudioOnce();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    ping(700, 0.18);
+    musicOn = true;
+    musicBtn.textContent = "⏹️ Musique";
+    playPhrase();
+  }catch(e){ console.warn('Audio init error', e); }
+}
+function stopMusic(){
+  musicOn = false;
+  if (loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
+  if (finaleLoopTimer){ clearTimeout(finaleLoopTimer); finaleLoopTimer=null; }
+  if (audioCtx && audioCtx.state !== "closed"){ audioCtx.suspend(); }
+  musicBtn.textContent = "🎵 Musique";
+}
+function toggleMusic(){ musicOn ? stopMusic() : startMusic(); }
 musicBtn.addEventListener('click', toggleMusic);
 
-function ping(freq=440,amp=0.2){ if(!audioCtx||!masterGain) return; const t=audioCtx.currentTime; const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
-  o.type='square'; o.frequency.value=freq; g.gain.setValueAtTime(amp,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.14); o.connect(g).connect(masterGain); o.start(t); o.stop(t+0.16);
+function ping(freq=440, amp=0.2){
+  if (!audioCtx || !masterGain) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g   = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(amp, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  osc.connect(g).connect(masterGain);
+  osc.start(t); osc.stop(t + 0.16);
 }
-function playPhrase(){ if(!musicOn||!audioCtx) return; const notes=[262,294,330,349,392,440,494,523]; let t=audioCtx.currentTime;
-  notes.forEach(f=>{ scheduleSquare(f,t,0.26,0.30); t+=0.30; }); loopTimer=setTimeout(playPhrase,3000);
+// Mélodie de fond (boucle soft)
+function playPhrase(){
+  if (!musicOn || !audioCtx) return;
+  const notes = [262, 294, 330, 349, 392, 440, 494, 523];
+  let t = audioCtx.currentTime;
+  notes.forEach((freq)=>{
+    scheduleSquare(freq, t, 0.26, 0.28);
+    t += 0.30;
+  });
+  loopTimer = setTimeout(playPhrase, 2800);
 }
-function scheduleSquare(freq,start,dur=0.25,amp=0.26){ const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type='square'; o.frequency.value=freq;
-  g.gain.setValueAtTime(amp,start); g.gain.exponentialRampToValueAtTime(0.001,start+dur); o.connect(g).connect(masterGain); o.start(start); o.stop(start+dur);
+function scheduleSquare(freq, start, dur=0.25, amp=0.26){
+  const osc = audioCtx.createOscillator();
+  const g   = audioCtx.createGain();
+  osc.type = 'square'; osc.frequency.value = freq;
+  g.gain.setValueAtTime(amp, start);
+  g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+  osc.connect(g).connect(masterGain);
+  osc.start(start); osc.stop(start + dur);
 }
-function starEmphasis(){ if(!audioCtx||!masterGain) return; const base=audioCtx.currentTime; [784,880,988,1175].forEach((f,i)=>scheduleSquare(f, base+i*0.08,0.18,0.46)); }
+// emphase sonore à la collecte
+function starEmphasis(){
+  if (!audioCtx || !masterGain) return;
+  const base = audioCtx.currentTime;
+  [784,880,988,1175].forEach((f,i)=>{ scheduleSquare(f, base + i*0.08, 0.18, 0.44); });
+}
+
+/* Fanfare finale longue (boucle ~10s) */
 function playFinaleLong(){
   if(!audioCtx||!masterGain) return;
   if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
   if(finaleLoopTimer){ clearTimeout(finaleLoopTimer); finaleLoopTimer=null; }
 
   const t0=audioCtx.currentTime+0.05;
-  const seq1=[523,659,784,988,1175,1319];
-  const seq2=[1319,1175,988,784,659,523];
-  const chord=[523,659,784];
+  const seq1=[523,659,784,988,1175,1319];   // montée
+  const seq2=[1319,1175,988,784,659,523];   // descente
+  const chord=[523,659,784];                // do majeur
   let t=t0;
 
-  seq1.forEach((f,i)=>{ scheduleSquare(f, t + i*0.14, 0.22, 0.48); });
+  seq1.forEach((f,i)=> scheduleSquare(f, t + i*0.14, 0.22, 0.56));
   t+=seq1.length*0.14 + 0.10;
-
-  seq2.forEach((f,i)=>{ scheduleSquare(f, t + i*0.14, 0.22, 0.44); });
+  seq2.forEach((f,i)=> scheduleSquare(f, t + i*0.14, 0.22, 0.50));
   t+=seq2.length*0.14 + 0.20;
-
-  chord.forEach(f=> scheduleSquare(f, t, 0.9, 0.42));
+  chord.forEach(f=> scheduleSquare(f,   t, 0.9, 0.46));
   t+=0.95;
-  chord.forEach(f=> scheduleSquare(f*2, t, 0.9, 0.40));
+  chord.forEach(f=> scheduleSquare(f*2, t, 0.9, 0.44));
 
   finaleLoopTimer = setTimeout(playFinaleLong, 10000);
 }
 
 /* ============ RENDU & BOUCLE ============ */
-const UI_BOTTOM=180; // réserve visuelle pour le D-pad
+const UI_BOTTOM = 180; // réserve visuelle en bas pour le D-pad
 
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
@@ -309,40 +390,47 @@ function drawStarfish(cx,cy,R){
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
 
-let running=false;
+window.running=false;
 function draw(ts){
-  if(ts){ if(!lastTS) lastTS=ts; frameDT=Math.min(0.05,(ts-lastTS)/1000); lastTS=ts;
-    dashOffset+=PATH.speed*frameDT; updateLabels(frameDT);
-    if(finale){ updateFireworks(frameDT);
-      finaleTimer+=frameDT; finaleZoom = Math.min(1.35, 1 + finaleTimer*0.12);
+  if(ts){
+    if(!lastTS) lastTS=ts;
+    frameDT = Math.min(0.05,(ts-lastTS)/1000);
+    lastTS = ts;
+    dashOffset += PATH.speed*frameDT;
+    updateLabels(frameDT);
+    if(finale){
+      updateFireworks(frameDT);
+      // zoom progressif des feux
+      finaleTimer += frameDT;
+      finaleZoom = Math.min(1.35, 1 + finaleTimer*0.12);
+      // “danse” : oscillation + easing vers centre
       dancePhase += frameDT*2.4;
       const cx=W/2, cy=(H-UI_BOTTOM)/2;
-      danceBird.x += (cx-90 - danceBird.x)*0.06; danceBird.y += (cy - danceBird.y)*0.06;
+      danceBird.x += (cx-90 - danceBird.x)*0.06;   danceBird.y += (cy - danceBird.y)*0.06;
       danceSpider.x += (cx+90 - danceSpider.x)*0.06; danceSpider.y += (cy - danceSpider.y)*0.06;
-      danceBird.scale += (1.65 - danceBird.scale)*0.05; danceSpider.scale += (1.55 - danceSpider.scale)*0.05;
-      danceBird.angle = Math.sin(dancePhase)*0.25;
+      danceBird.scale  += (1.65 - danceBird.scale)*0.05;
+      danceSpider.scale+= (1.55 - danceSpider.scale)*0.05;
+      danceBird.angle   = Math.sin(dancePhase)*0.25;
       danceSpider.angle = Math.sin(dancePhase+Math.PI/2)*0.20;
     }
   }
 
   // Mise à l’échelle avec espace en bas
   const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
-  const availW=W, availH=Math.max(200, H-UI_BOTTOM);
+  const availW=W, availH=Math.max(200, H - UI_BOTTOM);
   const scale=Math.min(availW/mw, availH/mh), dw=mw*scale, dh=mh*scale;
   const ox=(W-dw)/2, oy=Math.max(0,(availH-dh)/2);
 
   ctx.clearRect(0,0,W,H);
 
-  // Carte (ou placeholder si manquante)
-  if(mapImg.complete&&mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
-  else{
-    ctx.fillStyle="#d9e6f2"; ctx.fillRect(ox,oy,dw,dh);
-    ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, ox+14, oy+24);
-  }
+  // Carte
+  if (mapImg.complete && mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
+  else { ctx.fillStyle="#d9e6f2"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, ox+14, oy+24); }
 
+  // Finale : voile sombre (rien ne gêne les feux/ danse)
   if(finale){ ctx.fillStyle="rgba(0,0,0,0.25)"; ctx.fillRect(0,0,W,H-UI_BOTTOM); }
 
-  // Chemin parcouru (plein)
+  // Chemin plein (parcouru) — pas pendant la danse
   if(!finale){
     ctx.save(); ctx.strokeStyle="#7a4c25"; ctx.lineWidth=4; ctx.lineCap="round"; ctx.lineJoin="round";
     ctx.beginPath();
@@ -356,45 +444,53 @@ function draw(ts){
     ctx.stroke(); ctx.restore();
   }
 
-  // Segment suivant (pointillé)
-  if(!finale && currentIdx<POIS.length-1){
+  // Segment suivant animé (pointillé)
+  if(!finale && currentIdx < POIS.length-1){
     const a=POIS[currentIdx], b=POIS[currentIdx+1];
     const ax=ox+a.x*dw, ay=oy+a.y*dh, bx=ox+b.x*dw, by=oy+b.y*dh;
     const mx=(ax+bx)/2, my=(ay+by)/2 + ((currentIdx%2?1:-1)*8);
-    ctx.save(); ctx.setLineDash(PATH.dash); ctx.lineDashOffset=-dashOffset; ctx.strokeStyle=PATH.color; ctx.lineWidth=PATH.width;
-    ctx.lineCap=PATH.cap; ctx.lineJoin=PATH.join; ctx.beginPath(); ctx.moveTo(ax,ay); ctx.quadraticCurveTo(mx,my,bx,by); ctx.stroke(); ctx.restore();
+    ctx.save();
+    ctx.setLineDash(PATH.dash);
+    ctx.lineDashOffset = -dashOffset;
+    ctx.strokeStyle=PATH.color; ctx.lineWidth=PATH.width; ctx.lineCap=PATH.cap; ctx.lineJoin=PATH.join;
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.quadraticCurveTo(mx,my,bx,by); ctx.stroke();
+    ctx.restore();
   }
 
-  // X + étoile active
+  // X sur étapes visitées + étoile active
   if(!finale){
     for(let i=0;i<=currentIdx && i<POIS.length;i++){
       const p=POIS[i]; const x=ox+p.x*dw, y=oy+p.y*dh;
       ctx.save(); ctx.translate(x,y); ctx.rotate(0.2); ctx.strokeStyle='#b04123'; ctx.lineWidth=3;
       ctx.beginPath(); ctx.moveTo(-8,-8); ctx.lineTo(8,8); ctx.moveTo(-8,8); ctx.lineTo(8,-8); ctx.stroke(); ctx.restore();
     }
-    if(currentIdx<POIS.length){
+    if(currentIdx < POIS.length){
       const p=POIS[currentIdx]; const x=ox+p.x*dw, y=oy+p.y*dh;
       drawStarfish(x, y-26, Math.max(18,Math.min(26,Math.min(W,H)*0.03)));
     }
   }
 
-  // Aracne (hirondelle) — jeu OU finale (danse)
+  // Aracne (jeu normal) OU danse (finale)
   const bw=Math.min(170,Math.max(90,dw*player.size));
   const bx=ox+player.x*dw, by=oy+player.y*dh;
+
   if(!finale){
-    if (birdImg.complete&&birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2, by-bw/2, bw, bw);
+    if (birdImg.complete && birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2, by-bw/2, bw, bw);
     else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx,by,bw*0.35,0,Math.PI*2); ctx.fill(); }
   }
 
   // Collision → collecte
-  if(!finale && currentIdx<POIS.length){
+  if(!finale && currentIdx < POIS.length){
     const p=POIS[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
     if(Math.hypot(bx-px,by-py)<44){
-      collected.add(p.key); refreshStars(); starEmphasis();
-      showTarantulaAt(p, px, py); spawnLabel(p.name.split(" — ")[0], px, py-38);
+      collected.add(p.key); refreshStars();
+      starEmphasis();                          // SFX
+      showTarantulaAt(p, px, py);              // bulle
+      spawnLabel(p.name.split(" — ")[0], px, py-38); // label
       currentIdx++;
-      if(currentIdx===POIS.length){
+      if(currentIdx===POIS.length){ 
         beginFinale(bx,by, ox+POIS[POIS.length-1].x*dw, oy+POIS[POIS.length-1].y*dh);
+        setTimeout(()=>{ alert("🎉 Bravo ! 10/10 étoiles collectées."); }, 400);
       }
     }
   }
@@ -403,42 +499,49 @@ function draw(ts){
   drawLabels();
   if(finale || fireworks.length>0){ drawFireworks(); }
 
-  // Danse finale
+  // Danse finale (dessin des deux sprites au centre, plus grands + oscillation)
   if(finale){
-    drawDancer(birdImg, danceBird.x, danceBird.y, bw*danceBird.scale, danceBird.angle);
+    drawDancer(birdImg,   danceBird.x,   danceBird.y,   bw*danceBird.scale,    danceBird.angle);
     drawDancer(spiderImg, danceSpider.x, danceSpider.y, bw*danceSpider.scale*0.9, danceSpider.angle);
   }
 }
 
 function drawDancer(img, cx, cy, size, angle){
-  ctx.save();
-  ctx.translate(cx,cy);
-  ctx.rotate(angle);
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
   if(img.complete && img.naturalWidth) ctx.drawImage(img, -size/2, -size/2, size, size);
   else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(0,0,size*0.35,0,Math.PI*2); ctx.fill(); }
   ctx.restore();
 }
 
-function loop(ts){ if(!running) return; draw(ts); requestAnimationFrame(loop); }
+function loop(ts){ if(!window.running) return; draw(ts); requestAnimationFrame(loop); }
 
-/* ============== FINALE ============== */
+/* ====== LANCE LA FINALE AMÉLIORÉE ====== */
 function beginFinale(bx,by, lastPx, lastPy){
-  finale=true; touch.classList.remove('show');
-  danceBird.x=bx; danceBird.y=by; danceSpider.x=lastPx; danceSpider.y=lastPy;
+  finale=true;     // mode cinématique
+  touch.classList.remove('show');
+  // positions de départ = positions à l’instant de fin
+  danceBird.x=bx;      danceBird.y=by;
+  danceSpider.x=lastPx;danceSpider.y=lastPy;
   danceBird.scale=1.0; danceSpider.scale=1.0; dancePhase=0; finaleTimer=0; finaleZoom=1.0;
-  playFinaleLong(); triggerFireworksShow(); setInterval(()=>triggerFireworksShow(), 4500);
-  setTimeout(()=>{ alert("🎉 Bravo ! 10/10 étoiles collectées !"); }, 800);
+
+  // Musique finale longue en boucle
+  playFinaleLong();
+  // Feux d’artifice récurrents
+  triggerFireworksShow();
+  window.__fwInterval__ = setInterval(triggerFireworksShow, 4500);
 }
 
-/* ============== UI: HUD & BULLE ============== */
+/* ====== HUD & BULLE ====== */
 function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
 function refreshStars(){ scoreEl.textContent=collected.size; starsEl.innerHTML=''; for(let i=0;i<10;i++){ const im=new Image(); im.className='star'; im.src=starSVG(i<collected.size?"#d26f45":"#f0c9a7"); starsEl.appendChild(im);} }
 refreshStars();
 function showTarantulaAt(p,screenX,screenY){
-  bdTitle.textContent="Tarantula — "+p.name.split(" — ")[0]; bdText.textContent=p.info;
-  tarBox.style.left=Math.min(screenX+12,window.innerWidth-270)+'px'; tarBox.style.top=Math.max(12,screenY-30)+'px';
+  bdTitle.textContent = "Tarantula — " + p.name.split(" — ")[0];
+  bdText.textContent  = p.info;
+  tarBox.style.left = Math.min(screenX + 12, window.innerWidth - 270) + 'px';
+  tarBox.style.top  = Math.max(12, screenY - 30) + 'px';
   tarBox.classList.remove('hide'); tarBox.classList.add('show'); tarBox.style.display='flex';
-  clearTimeout(showTarantulaAt._t); showTarantulaAt._t=setTimeout(()=>hideTarantula(),4200);
+  clearTimeout(showTarantulaAt._t); showTarantulaAt._t = setTimeout(()=>hideTarantula(), 4200);
 }
 function hideTarantula(){ tarBox.classList.add('hide'); setTimeout(()=>{ tarBox.classList.remove('show'); tarBox.style.display='none'; },160); }
 tarBox.addEventListener('click', hideTarantula);
@@ -446,7 +549,7 @@ tarBox.addEventListener('click', hideTarantula);
 /* ============= CONTRÔLES TACTILES ============= */
 for(const el of document.querySelectorAll('.btn')){
   const dx=parseFloat(el.dataset.dx), dy=parseFloat(el.dataset.dy);
-  let press=false,id=null;
+  let press=false, id=null;
   const step=()=>{ if(!press || finale) return;
     player.x=Math.max(0,Math.min(1,player.x+dx*player.speed));
     player.y=Math.max(0,Math.min(1,player.y+dy*player.speed));
@@ -455,36 +558,50 @@ for(const el of document.querySelectorAll('.btn')){
   el.addEventListener('touchstart',e=>{press=true;step();e.preventDefault();},{passive:false});
   el.addEventListener('touchend',()=>{press=false;cancelAnimationFrame(id);});
 }
-/* Drag direct de l’oiseau (désactivé en finale) */
+/* Drag direct sur l’oiseau (désactivé en finale) */
 let dragging=false;
 canvas.addEventListener('touchstart',e=>{
   if(finale) return;
-  const t=e.touches[0];
-  const bx=player.x*W, by=player.y*H;
-  if(Math.hypot(t.clientX-bx,t.clientY-by)<Math.min(W,H)*player.size*0.6){ dragging=true; e.preventDefault(); }
+  const t=e.touches[0]; const bx=player.x*W, by=player.y*H;
+  if(Math.hypot(t.clientX-bx,t.clientY-by)<Math.min(W,H)*player.size*0.6){dragging=true; e.preventDefault();}
 },{passive:false});
 canvas.addEventListener('touchmove',e=>{
-  if(!dragging || finale) return; const t=e.touches[0];
-  player.x=Math.max(0,Math.min(1,t.clientX/W)); player.y=Math.max(0,Math.min(1,t.clientY/H)); e.preventDefault();
+  if(!dragging||finale) return; const t=e.touches[0];
+  player.x=Math.max(0,Math.min(1,(t.clientX)/W));
+  player.y=Math.max(0,Math.min(1,(t.clientY)/H));
+  e.preventDefault();
 },{passive:false});
 canvas.addEventListener('touchend',()=>dragging=false);
-document.addEventListener('touchmove',e=>{ if(e.target.closest('.btn')||e.target.closest('canvas')) e.preventDefault(); },{passive:false});
+document.addEventListener('touchmove',e=>{
+  if(e.target.closest('.btn')||e.target.closest('canvas')) e.preventDefault();
+},{passive:false});
 
-/* ============== SPLASH ============== */
+/* ======== ECRAN D’ATTENTE ======== */
 function drawSplash(force){
   resize();
-  const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
-  const availW=W, availH=Math.max(200, H-UI_BOTTOM);
-  const scale=Math.min(availW/mw, availH/mh), dw=mw*scale, dh=mh*scale;
-  const ox=(W-dw)/2, oy=Math.max(0,(availH-dh)/2);
-  if(mapImg.complete&&mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
-  else{ ctx.fillStyle="#d9e6f2"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, ox+14, oy+24); }
+  if (mapImg.complete && mapImg.naturalWidth){
+    const mw=mapImg.naturalWidth, mh=mapImg.naturalHeight;
+    const availW=W, availH=Math.max(200, H - UI_BOTTOM);
+    const scale=Math.min(availW/mw, availH/mh), dw=mw*scale, dh=mh*scale;
+    const ox=(W-dw)/2, oy=Math.max(0,(availH-dh)/2);
+    ctx.drawImage(mapImg,ox,oy,dw,dh);
+  } else if (force){
+    ctx.fillStyle="#d9e6f2"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, 14, 28);
+  }
 }
 
-/* ===== Helpers ===== */
-function roundRect(ctx,x,y,w,h,r){ const rr=Math.min(r,w/2,h/2); ctx.beginPath();
-  ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,  x+w,y+h, rr); ctx.arcTo(x+w,y+h,x,  y+h, rr);
-  ctx.arcTo(x,  y+h,x,  y,   rr); ctx.arcTo(x,  y,  x+w,y,   rr); ctx.closePath(); return ctx;
+/* ===== util: roundRect (Safari) ===== */
+function roundRect(ctx,x,y,w,h,r){
+  const rr=Math.min(r,w/2,h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr,y);
+  ctx.arcTo(x+w,y,  x+w,y+h, rr);
+  ctx.arcTo(x+w,y+h,x,  y+h, rr);
+  ctx.arcTo(x,  y+h,x,  y,   rr);
+  ctx.arcTo(x,  y,  x+w,y,   rr);
+  ctx.closePath();
+  return ctx;
 }
 </script>
 </body>
