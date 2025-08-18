@@ -192,46 +192,51 @@ function assetFail(who,url,showPlaceholder){
 }
 
 /* ============== DONNÉES CHASSE ============== */
-/* Décalage Adriatique (par défaut) */
-const SHIFT_EAST=0.04;
-
-/* Valeurs d'origine */
+/* Valeurs par défaut = TON JSON (définitif) */
 const DEFAULT_POIS = [
-  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+SHIFT_EAST,y:0.52,info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs." },
-  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+SHIFT_EAST,y:0.56,info:"Grande calanque turquoise entourée de falaises." },
-  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74+SHIFT_EAST,y:0.60,info:"Thermes soufrés & Villa Sticchi." },
-  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70+SHIFT_EAST,y:0.65,info:"Temple d’Athéna (légende), grotte Zinzulusa." },
-  { key:"ciolo",         name:"Il Ciolo",                      x:0.64+SHIFT_EAST,y:0.75,info:"Petit fjord + pont routier." },
-  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60,y:0.88,info:"Phare haut & cascade monumentale." },
-  { key:"gallipoli",     name:"Gallipoli",                     x:0.35,y:0.62,info:"Vieille ville sur îlot relié par pont." },
-  { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22,y:0.46,info:"Plages magnifiques & réserve marine." },
-  { key:"nardo",         name:"Nardò",                         x:0.28,y:0.50,info:"Centre baroque ; Porto Selvaggio." },
-  { key:"lecce",         name:"Lecce",                         x:0.53,y:0.28,info:"Baroque en pietra leccese." }
+  { key:"otranto",      name:"Otranto — Cathédrale",         x:0.9776, y:0.4650, info:"Mosaïque médiévale (Arbre de Vie) & chapelle des 800 martyrs." },
+  { key:"portobadisco", name:"Porto Badisco — Calanque",     x:1.0000, y:0.4550, info:"Grande calanque turquoise entourée de falaises." },
+  { key:"santacesarea", name:"Santa Cesarea Terme",          x:0.7800, y:0.6000, info:"Thermes soufrés & Villa Sticchi." },
+  { key:"castro",       name:"Castro — Castrum Minervae",    x:0.8843, y:0.6542, info:"Temple d’Athéna (légende), grotte Zinzulusa." },
+  { key:"ciolo",        name:"Il Ciolo",                     x:0.8475, y:0.7143, info:"Petit fjord + pont routier." },
+  { key:"leuca",        name:"Santa Maria di Leuca",         x:0.8193, y:0.9275, info:"Phare haut & cascade monumentale." },
+  { key:"gallipoli",    name:"Gallipoli",                    x:0.2514, y:0.6335, info:"Vieille ville sur îlot relié par pont." },
+  { key:"portocesareo", name:"Porto Cesareo",                x:0.2200, y:0.4600, info:"Plages magnifiques & réserve marine." },
+  { key:"nardo",        name:"Nardò",                        x:0.3431, y:0.4800, info:"Centre baroque ; Porto Selvaggio." },
+  { key:"lecce",        name:"Lecce",                        x:0.5300, y:0.2800, info:"Baroque en pietra leccese." }
 ];
 
 /* Copie active + chargement localStorage si présent */
-let POIS = DEFAULT_POIS.map(p=>({...p}));
+let POIS = DEFAULT_POIS.map(p=>({ ...p }));
 try{
   const saved = JSON.parse(localStorage.getItem('salento_pois')||'null');
   if(Array.isArray(saved) && saved.length===DEFAULT_POIS.length){
     for(let i=0;i<POIS.length;i++){
       if(saved[i] && typeof saved[i].x==='number' && typeof saved[i].y==='number'){
-        POIS[i].x=saved[i].x; POIS[i].y=saved[i].y;
+        POIS[i].x = saved[i].x; 
+        POIS[i].y = saved[i].y;
       }
     }
   }
 }catch(_){}
 
 function savePOIsToStorage(){
-  try{ localStorage.setItem('salento_pois', JSON.stringify(POIS.map(({key,name,x,y})=>({key,name,x,y})))); }catch(_){}
+  try{
+    localStorage.setItem('salento_pois',
+      JSON.stringify(POIS.map(({key,name,x,y})=>({key,name,x,y})))
+    );
+  }catch(_){}
 }
 function resetPOIs(){
   localStorage.removeItem('salento_pois');
-  for(let i=0;i<POIS.length;i++){ POIS[i].x=DEFAULT_POIS[i].x; POIS[i].y=DEFAULT_POIS[i].y; }
-  updateEditorUI();
+  for(let i=0;i<POIS.length;i++){
+    POIS[i].x = DEFAULT_POIS[i].x;
+    POIS[i].y = DEFAULT_POIS[i].y;
+  }
+  updateEditorUI && updateEditorUI();
 }
 
-const player={ x:0.55, y:0.25, speed:0.0048, size:0.11 }; // normalisé [0..1]
+const player={ x:0.55, y:0.25, speed:0.0048, size:0.11 };
 const collected=new Set();
 let currentIdx=0;
 
@@ -430,14 +435,12 @@ function draw(ts){
   // Mode éditeur : montre tous les points + cible sur le point sélectionné
   if(editorMode){
     ctx.save();
-    // Tous les points
     ctx.fillStyle='rgba(210,111,69,0.9)';
     for(let i=0;i<POIS.length;i++){
       const p=POIS[i], x=ox+p.x*dw, y=oy+p.y*dh;
       ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2); ctx.fill();
       if(i===editIndex){ ctx.strokeStyle='#00aaff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x,y,10,0,Math.PI*2); ctx.stroke(); }
     }
-    // Cible
     const ep=POIS[editIndex]; const ex=ox+ep.x*dw, ey=oy+ep.y*dh;
     ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.setLineDash([4,6]); ctx.beginPath(); ctx.moveTo(ex-18,ey); ctx.lineTo(ex+18,ey); ctx.moveTo(ex,ey-18); ctx.lineTo(ex,ey+18); ctx.stroke();
     ctx.restore();
@@ -488,6 +491,7 @@ copyPoi.addEventListener('click', ()=>{
 });
 
 /* ===== Helpers écran <-> normalisé ===== */
+let lastGeom={ox:0,oy:0,dw:W,dh:H};
 function screenToNorm(sx,sy){ return [ (sx-lastGeom.ox)/lastGeom.dw, (sy-lastGeom.oy)/lastGeom.dh ]; }
 function normToScreenX(nx){ return lastGeom.ox + nx*lastGeom.dw; }
 function normToScreenY(ny){ return lastGeom.oy + ny*lastGeom.dh; }
