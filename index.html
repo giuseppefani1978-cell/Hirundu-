@@ -5,16 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 <title>Salento — Aracne & Tarantula (Chasse au trésor)</title>
 <style>
+  /* ===== Base ===== */
   html,body{height:100%;margin:0;background:#f6f1e1;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
   *{-webkit-tap-highlight-color:transparent}
   .wrap{display:flex;flex-direction:column;height:100%}
   .game{position:relative;flex:1;overflow:hidden}
   canvas{width:100%;height:100%;display:block;background:#e2eef7;touch-action:none}
 
-  /* -------- Overlay -------- */
+  /* ===== Overlay ===== */
   .overlay{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    background:rgba(246,241,225,.84);backdrop-filter:blur(3px);z-index:30
+    background:rgba(246,241,225,.84);backdrop-filter:blur(3px);z-index:30;pointer-events:auto
   }
   .card{
     width:min(560px,92vw);border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;
@@ -22,9 +23,9 @@
   }
   .card h1{margin:0 0 6px 0;font-size:22px}
   .card p{margin:6px 0 14px 0;opacity:.82}
-  .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
+  .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;pointer-events:auto}
 
-  /* -------- HUD -------- */
+  /* ===== HUD ===== */
   .hud{
     position:absolute;left:10px;top:10px;background:rgba(255,248,220,.96);
     border:2px solid #c8b37a;border-radius:10px;padding:8px 10px;font-size:14px;z-index:12
@@ -32,7 +33,7 @@
   .stars{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
   .star{width:18px;height:18px;opacity:.95}
 
-  /* -------- Bulle Tarantula (avatar PNG transparent + bulle neutre) -------- */
+  /* ===== Bulle Tarantula ===== */
   .tarBox{position:absolute;display:none;align-items:flex-start;gap:8px;z-index:20;
           transform-origin:left bottom;transition:transform .15s ease,opacity .15s ease}
   .tarBox.show{display:flex;opacity:1;transform:scale(1)}
@@ -44,7 +45,7 @@
   .bdBubble:before{content:"";position:absolute;left:-9px;bottom:11px;border-width:9px;border-style:solid;border-color:transparent #fff transparent transparent}
   .bdTitle{font-weight:700;margin-bottom:4px}
 
-  /* -------- D-pad -------- */
+  /* ===== D-pad ===== */
   .touch{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:none;gap:14px;align-items:center;z-index:18}
   .touch.show{display:flex}
   .dpad{display:grid;grid-template-columns:72px 72px 72px;grid-template-rows:72px 72px 72px;gap:12px}
@@ -52,17 +53,17 @@
        display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;font-weight:800;font-size:22px;box-shadow:0 3px 0 #c8b37a}
   .btn:active{transform:translateY(1px)}
 
-  /* -------- Bouton Musique -------- */
+  /* ===== Bouton Musique ===== */
   #musicBtn{
     position:absolute;top:10px;right:10px;z-index:22;
     background:#ffe8a6;border:2px solid #c8b37a;border-radius:10px;padding:8px 12px;font-weight:700;display:none
   }
 
-  /* -------- Erreurs assets -------- */
+  /* ===== Erreurs assets ===== */
   .err{position:absolute;right:10px;top:10px;background:#ffefef;border:2px solid #d66;border-radius:10px;padding:8px 10px;font-size:12px;color:#900;z-index:40;max-width:min(320px,60vw)}
   .err b{display:block;margin-bottom:4px}
 
-  /* -------- Debug -------- */
+  /* ===== Debug ===== */
   #debugBox{position:fixed;left:10px;bottom:10px;z-index:9999;background:#ffefef;border:2px solid #d66;
     padding:8px 10px;border-radius:8px;font:12px/1.3 system-ui;max-width:80vw;display:none}
 </style>
@@ -75,7 +76,8 @@
       <div class="card">
         <h1>Salento — Aracne & Tarantula</h1>
         <p>Collecte les 10 étoiles et découvre les lieux secrets.</p>
-        <button id="startBtn">Démarrer</button>
+        <!-- Bouton blindé -->
+        <button id="startBtn" type="button" onclick="window.startGame && window.startGame()">Démarrer</button>
       </div>
     </div>
 
@@ -113,15 +115,30 @@
 <div id="debugBox"></div>
 
 <script>
+/* -------------------------------------------------------
+   BOOT BOUTON DEMARRER (robuste, appelle le jeu si prêt)
+--------------------------------------------------------*/
+window.startGame = function(){
+  try{
+    var ov = document.getElementById('overlay'); if (ov) ov.style.display = 'none';
+    var tch = document.getElementById('touch');   if (tch) tch.classList.add('show');
+    var m = document.getElementById('musicBtn');  if (m) m.style.display = 'inline-block';
+    if (typeof startMusic === 'function') startMusic(); // iOS: geste utilisateur
+    if (typeof resize === 'function') resize();
+    window.running = true;
+    if (typeof loop === 'function') requestAnimationFrame(loop);
+  }catch(e){ alert('Erreur au démarrage: '+e.message); }
+};
+
 /* ---------- Debug (affiche erreurs JS à l'écran) ---------- */
 function debug(msg){const box=document.getElementById('debugBox');box.style.display='block';box.innerHTML+=(box.innerHTML?'<br>':'')+'⚠️ '+msg;}
 window.addEventListener('error',e=>debug(e.message));
 window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message?e.reason.message:e.reason));
 
 /* ================== ASSETS ================== */
-const MAP_URL       = "assets/salento-map.jpg";
-const BIRD_URL      = "assets/aracne.png";
-const TARANTULA_URL = "assets/tarantula.png";
+const MAP_URL       = "assets/salento-map.jpeg";
+const BIRD_URL      = "assets/aracne .PNG";
+const TARANTULA_URL = "assets/tarantula .PNG";
 
 /* ================== CANVAS ================== */
 const canvas = document.getElementById('c');
@@ -136,8 +153,6 @@ function resize(){
 resize(); addEventListener('resize', resize);
 
 /* ================== UI REFS ================== */
-const overlay  = document.getElementById('overlay');
-const startBtn = document.getElementById('startBtn');
 const touch    = document.getElementById('touch');
 const scoreEl  = document.getElementById('score');
 const starsEl  = document.getElementById('stars');
@@ -157,7 +172,6 @@ mapImg.onerror=()=>assetFail('Carte', MAP_URL, true);
 birdImg.onerror=()=>assetFail('Aracne', BIRD_URL);
 spiderImg.onerror=()=>assetFail('Tarantula', TARANTULA_URL);
 mapImg.src=MAP_URL; birdImg.src=BIRD_URL; spiderImg.src=TARANTULA_URL;
-
 function assetFail(who,url,showPlaceholder){
   errBox.style.display='block';
   errText.innerHTML += (errText.innerHTML? "<br>":"") + `• ${who} introuvable : "${url}"`;
@@ -189,8 +203,8 @@ let currentIdx = 0;
 let dashOffset=0, lastTS=0, frameDT=0;
 const PATH={ dash:[10,6], speed:120, color:'#7a4c25', width:3, cap:'round', join:'round' };
 
-/* ====== LABELS (pour les noms des lieux) ====== */
-const labels=[]; // items: {text,x,y,ttl}
+/* ====== LABELS (noms des lieux) ====== */
+const labels=[]; // {text,x,y,ttl}
 function spawnLabel(text, x, y){ labels.push({text, x, y, ttl:1800}); }
 function updateLabels(dt){
   for(const L of labels){ L.ttl -= dt*1000; L.y -= 12*dt; }
@@ -273,17 +287,16 @@ function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base
 function refreshStars(){ scoreEl.textContent=collected.size; starsEl.innerHTML=''; for(let i=0;i<10;i++){ const im=new Image(); im.className='star'; im.src=starSVG(i<collected.size?"#d26f45":"#f0c9a7"); starsEl.appendChild(im);} }
 refreshStars();
 
-const tarBoxEl = tarBox;
 function showTarantulaAt(p,screenX,screenY){
   bdTitle.textContent = "Tarantula — " + p.name.split(" — ")[0];
   bdText.textContent  = p.info;
-  tarBoxEl.style.left = Math.min(screenX + 12, window.innerWidth - 270) + 'px';
-  tarBoxEl.style.top  = Math.max(12, screenY - 30) + 'px';
-  tarBoxEl.classList.remove('hide'); tarBoxEl.classList.add('show'); tarBoxEl.style.display='flex';
+  tarBox.style.left = Math.min(screenX + 12, window.innerWidth - 270) + 'px';
+  tarBox.style.top  = Math.max(12, screenY - 30) + 'px';
+  tarBox.classList.remove('hide'); tarBox.classList.add('show'); tarBox.style.display='flex';
   clearTimeout(showTarantulaAt._t); showTarantulaAt._t = setTimeout(()=>hideTarantula(), 4200);
 }
-function hideTarantula(){ tarBoxEl.classList.add('hide'); setTimeout(()=>{ tarBoxEl.classList.remove('show'); tarBoxEl.style.display='none'; },160); }
-tarBoxEl.addEventListener('click', hideTarantula);
+function hideTarantula(){ tarBox.classList.add('hide'); setTimeout(()=>{ tarBox.classList.remove('show'); tarBox.style.display='none'; },160); }
+tarBox.addEventListener('click', hideTarantula);
 
 /* ============= CONTRÔLES TACTILES ============= */
 for(const el of document.querySelectorAll('.btn')){
@@ -346,6 +359,8 @@ function stopMusic(){
   musicBtn.textContent = "🎵 Musique";
 }
 function toggleMusic(){ musicOn ? stopMusic() : startMusic(); }
+musicBtn.addEventListener('click', toggleMusic);
+
 function ping(freq=440, amp=0.2){
   if (!audioCtx || !masterGain) return;
   const t = audioCtx.currentTime;
@@ -399,8 +414,7 @@ function playFinale(){
 }
 
 /* ============ RENDU & BOUCLE ============ */
-/* réserve visuelle en bas pour le D-pad */
-const UI_BOTTOM = 180;
+const UI_BOTTOM = 180; // réserve visuelle en bas pour le D-pad
 
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
@@ -409,7 +423,7 @@ function drawStarfish(cx,cy,R){
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
 
-let running=false;
+window.running=false;
 function draw(ts){
   if(ts){
     if(!lastTS) lastTS=ts;
@@ -494,11 +508,9 @@ function draw(ts){
   if(finaleMode || fireworks.length>0){ drawFireworks(); }
 }
 
-/* ============ BOUCLE ============ */
-let running=false;
-function loop(ts){ if(!running) return; draw(ts); requestAnimationFrame(loop); }
+function loop(ts){ if(!window.running) return; draw(ts); requestAnimationFrame(loop); }
 
-/* ============== DÉMARRAGE ============== */
+/* ============== ECRAN D’ATTENTE ============== */
 function drawSplash(force){
   resize();
   if (mapImg.complete && mapImg.naturalWidth){
@@ -512,18 +524,6 @@ function drawSplash(force){
     ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, 14, 28);
   }
 }
-
-startBtn.addEventListener('click', ()=>{
-  overlay.style.display='none';
-  touch.classList.add('show');
-  musicBtn.style.display='inline-block';
-  startMusic(); // iOS: geste utilisateur
-  resize();
-  running=true;
-  requestAnimationFrame(loop);
-});
-startBtn.addEventListener('touchend', e=>{ e.preventDefault(); startBtn.click(); });
-musicBtn.addEventListener('click', toggleMusic);
 
 /* ===== util: roundRect (Safari) ===== */
 function roundRect(ctx,x,y,w,h,r){
