@@ -233,41 +233,87 @@ document.addEventListener('touchmove',e=>{
   if(e.target.closest('.btn')||e.target.closest('canvas')) e.preventDefault();
 },{passive:false});
 
-/* ================= 8) Musique rétro (Web Audio) ================= */
-let audioCtx=null, musicOn=false, loopTimer=null;
-function startMusic(){
+/* ================= 8) Musique rétro (Web Audio) — FIX iPhone ================= */
+let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null;
+
+function createAudioOnce(){
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.28; // volume global (augmente si besoin)
+  masterGain.connect(audioCtx.destination);
+
+  // Déverrouillage iOS : jouer un buffer quasi-silencieux
+  const buffer = audioCtx.createBuffer(1, 1, 22050);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  src.connect(masterGain);
+  src.start(0);
+}
+
+async function startMusic(){
   try{
-    if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
-    else if(audioCtx.state==='suspended'){ audioCtx.resume(); }
+    createAudioOnce();
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();   // important sur iOS
+    }
+    // petit beep de confirmation
+    ping(660, 0.12);
     musicOn = true;
     musicBtn.textContent = "⏹️ Musique";
     playPhrase();
   }catch(e){ console.warn('Audio init error', e); }
 }
+
 function stopMusic(){
   musicOn = false;
-  if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
-  if(audioCtx && audioCtx.state!=="closed"){ audioCtx.suspend(); }
+  if (loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
+  if (audioCtx && audioCtx.state !== "closed"){ audioCtx.suspend(); }
   musicBtn.textContent = "🎵 Musique";
 }
-function toggleMusic(){ (!musicOn)?startMusic():stopMusic(); }
+
+function toggleMusic(){ musicOn ? stopMusic() : startMusic(); }
+
+// petit bip court pour confirmer
+function ping(freq=440, amp=0.15){
+  if (!audioCtx || !masterGain) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(amp, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+  osc.connect(g).connect(masterGain);
+  osc.start(t);
+  osc.stop(t + 0.14);
+}
+
+// joue la phrase "ta ta ta..." et reboucle
 function playPhrase(){
-  if(!musicOn || !audioCtx) return;
-  const notes=[262,294,330,349,392,440,494,523]; // do ré mi fa sol la si do
-  let t=audioCtx.currentTime;
+  if (!musicOn || !audioCtx) return;
+  const notes = [262, 294, 330, 349, 392, 440, 494, 523]; // do-ré-mi-fa-sol-la-si-do
+  let t = audioCtx.currentTime;
+
   notes.forEach((freq,i)=>{
-    const osc=audioCtx.createOscillator();
-    const gain=audioCtx.createGain();
-    osc.type="square";
-    osc.frequency.value=freq;
-    gain.gain.setValueAtTime(0.12,t);
-    gain.gain.exponentialRampToValueAtTime(0.001,t+0.25);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start(t);
-    osc.stop(t+0.25);
-    t+=0.3;
+    scheduleSquare(freq, t, 0.24, 0.22); // (freq, start, dur, amp)
+    t += 0.30;
   });
-  loopTimer=setTimeout(playPhrase, 2800);
+
+  loopTimer = setTimeout(playPhrase, 2800);
+}
+
+// planifie une note carrée type 8-bit
+function scheduleSquare(freq, start, dur=0.25, amp=0.22){
+  const osc = audioCtx.createOscillator();
+  const g   = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(amp, start);
+  g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+  osc.connect(g).connect(masterGain);
+  osc.start(start);
+  osc.stop(start + dur);
 }
 
 /* ================= 9) Rendu & boucle ================= */
