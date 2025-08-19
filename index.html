@@ -2,9 +2,6 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 <title>Salento — Aracne & Tarantula (Chasse au trésor)</title>
 <style>
@@ -28,30 +25,24 @@
   .card p{margin:6px 0 14px 0;opacity:.82}
   .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
 
-  /* ====== HUD colonne gauche (vertical, ne touche jamais le haut) ====== */
+  /* ====== HUD colonne gauche (vertical) ====== */
   .hud{
-    position:absolute !important;
-    left:8px;
-    top:50%;
-    transform:translateY(-50%);
-    background:rgba(255,248,220,.96);
-    border:2px solid #c8b37a;border-radius:10px;
+    position:absolute;left:8px;top:50%;transform:translateY(-50%);
+    background:rgba(255,248,220,.96);border:2px solid #c8b37a;border-radius:10px;
     padding:8px 10px;font-size:14px;z-index:22
   }
   .stars{display:flex;flex-direction:column;gap:4px;margin-top:6px}
   .star{width:18px;height:18px;opacity:.95}
 
-  /* ====== Bandeau Tarantula FIXE tout en haut (la carte ne passe pas dessous) ====== */
+  /* ====== Bandeau Tarantula FIXE tout en haut (ne couvre pas la carte) ====== */
   .tarTop{
     position:absolute;left:50%;top:6px;transform:translateX(-50%);
-    display:none;align-items:flex-start;gap:8px;z-index:40;max-width:96vw;
-    /* pour éviter tout recouvrement tactile inutile */
-    pointer-events:none;
+    display:none;align-items:flex-start;gap:8px;z-index:40;max-width:96vw
   }
   .tarTop.show{display:flex}
-  .tarTop img{width:64px;height:64px;object-fit:contain;background:transparent;border:none;border-radius:0;box-shadow:none;pointer-events:none}
+  .tarTop img{width:64px;height:64px;object-fit:contain;background:transparent;border:none;border-radius:0;box-shadow:none}
   .bdBubble{max-width:min(780px,92vw);background:#fff;border:1px solid #bbb;border-radius:14px;
-            padding:10px 12px;box-shadow:0 4px 10px rgba(0,0,0,.12);position:relative;font-size:14px;line-height:1.35;pointer-events:auto}
+            padding:10px 12px;box-shadow:0 4px 10px rgba(0,0,0,.12);position:relative;font-size:14px;line-height:1.35}
   .bdBubble:after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:-10px;border-width:10px;border-style:solid;border-color:transparent transparent #bbb transparent}
   .bdBubble:before{content:"";position:absolute;left:50%;transform:translateX(-50%);top:-9px;border-width:9px;border-style:solid;border-color:transparent transparent #fff transparent}
   .bdTitle{font-weight:700;margin-bottom:4px;text-align:center}
@@ -69,11 +60,10 @@
     position:absolute;top:10px;right:10px;z-index:45;
     background:#ffe8a6;border:2px solid #c8b37a;border-radius:10px;padding:8px 12px;font-weight:700;display:none
   }
-  /* Rejouer discret en haut-droite (ne couvre pas les danseurs au centre) */
   #replayFloat{
-    position:absolute;top:10px;right:130px; /* laisse la place au bouton Musique à droite */
-    z-index:46;display:none;border:2px solid #7ac37a;background:#eaffea;font-weight:800;border-radius:12px;padding:8px 12px;
-    box-shadow:0 6px 14px rgba(0,0,0,.15); cursor:pointer
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    z-index:46;display:none;border:2px solid #7ac37a;background:#eaffea;font-weight:800;border-radius:12px;padding:10px 16px;
+    box-shadow:0 6px 14px rgba(0,0,0,.15)
   }
 
   /* ====== Erreurs / Debug ====== */
@@ -97,12 +87,12 @@
 
     <!-- ===== UI ===== -->
     <button id="musicBtn">🎵 Musique</button>
-    <button id="replayFloat" type="button" title="Rejouer">⟲ Rejouer</button>
+    <button id="replayFloat">⟲ Rejouer</button>
     <div class="err" id="err" style="display:none"><b>⚠️ Problème d’assets</b><div id="errText"></div></div>
     <canvas id="c"></canvas>
 
-    <!-- HUD colonne gauche (vertical) -->
-    <div class="hud" id="hud">
+    <!-- HUD colonne gauche -->
+    <div class="hud">
       <div>Étoiles : <span id="score">0</span>/10</div>
       <div class="stars" id="stars"></div>
     </div>
@@ -130,14 +120,8 @@
 
 <script>
 /* =========================================================
-   VERSION (anti-cache) + BOOT
+   BOOT / REPLAY
 ========================================================= */
-function forceReload() {
-  location.reload(true); // recharge en ignorant le cache
-}
-  const ASSET_VER = "v=2025-08-19-1";
-<script src="script.js?v=2"></script>
-<link rel="stylesheet" href="style.css?v=2">
 window.startGame = function(){
   try{
     document.getElementById('overlay').style.display = 'none';
@@ -152,7 +136,7 @@ window.startGame = function(){
 };
 document.getElementById('replayFloat').addEventListener('click', ()=>{ resetGame(true); window.startGame(); });
 
-/* Debug à l’écran (si besoin) */
+/* Debug à l’écran */
 function debug(msg){const box=document.getElementById('debugBox');box.style.display='block';box.innerHTML+=(box.innerHTML?'<br>':'')+'⚠️ '+msg;}
 window.addEventListener('error',e=>debug(e.message));
 window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message?e.reason.message:e.reason));
@@ -189,7 +173,7 @@ const errBox    = document.getElementById('err');
 const errText   = document.getElementById('errText');
 const musicBtn  = document.getElementById('musicBtn');
 const replayBtn = document.getElementById('replayFloat');
-tarAvatar.src   = TARANTULA_URL + "?" + ASSET_VER;
+tarAvatar.src   = TARANTULA_URL;
 
 /* Images */
 const mapImg=new Image(), birdImg=new Image(), spiderImg=new Image();
@@ -197,9 +181,7 @@ mapImg.onload=()=>{ drawSplash(); };
 mapImg.onerror=()=>assetFail('Carte', MAP_URL, true);
 birdImg.onerror=()=>assetFail('Aracne', BIRD_URL);
 spiderImg.onerror=()=>assetFail('Tarantula', TARANTULA_URL);
-mapImg.src=MAP_URL + "?" + ASSET_VER;
-birdImg.src=BIRD_URL + "?" + ASSET_VER;
-spiderImg.src=TARANTULA_URL + "?" + ASSET_VER;
+mapImg.src=MAP_URL; birdImg.src=BIRD_URL; spiderImg.src=TARANTULA_URL;
 function assetFail(who,url,showPlaceholder){
   errBox.style.display='block';
   errText.innerHTML += (errText.innerHTML? "<br>":"") + `• ${who} introuvable : "${url}"`;
@@ -209,101 +191,41 @@ function assetFail(who,url,showPlaceholder){
 /* =========================================================
    DONNÉES / POIS / JOUEUR
 ========================================================= */
-  [
-  {
-    "key": "otranto",
-    "x": 0.9776,
-    "y": 0.465,
-    "question": "Où se trouve la ville au bord de l’Adriatique, célèbre pour sa cathédrale et ses mosaïques médiévales ?",
-    "answer": "Otranto — Cathédrale"
-  },
-  {
-    "key": "portobadisco",
-    "x": 1,
-    "y": 0.455,
-    "question": "Et là, dis-moi, elle est où la grande calanque turquoise entourée de falaises blanches ?",
-    "answer": "Porto Badisco — Calanque"
-  },
-  {
-    "key": "santacesarea",
-    "x": 0.78,
-    "y": 0.6,
-    "question": "Quel est le village thermal perché sur les falaises, connu pour ses grottes sulfureuses ?",
-    "answer": "Santa Cesarea Terme"
-  },
-  {
-    "key": "castro",
-    "x": 0.8843,
-    "y": 0.6542,
-    "question": "Où se trouvait l’ancien Castrum Minervae, au sommet d’une falaise face à la mer ?",
-    "answer": "Castro — Castrum Minervae"
-  },
-  {
-    "key": "ciolo",
-    "x": 0.8475,
-    "y": 0.7143,
-    "question": "Peux-tu me montrer le pont vertigineux qui surplombe une crique étroite et profonde ?",
-    "answer": "Il Ciolo"
-  },
-  {
-    "key": "leuca",
-    "x": 0.8193,
-    "y": 0.9275,
-    "question": "Quel est le cap tout au sud, là où l’Adriatique et l’Ionienne se rencontrent ?",
-    "answer": "Santa Maria di Leuca"
-  },
-  {
-    "key": "gallipoli",
-    "x": 0.2514,
-    "y": 0.6335,
-    "question": "Et si tu trouves la cité fortifiée bâtie sur une île reliée par un pont ?",
-    "answer": "Gallipoli"
-  },
-  {
-    "key": "portocesareo",
-    "x": 0.22,
-    "y": 0.46,
-    "question": "Quel est le port de pêche entouré de plages et de lagunes aux eaux peu profondes ?",
-    "answer": "Porto Cesareo"
-  },
-  {
-    "key": "nardo",
-    "x": 0.3431,
-    "y": 0.48,
-    "question": "Où se trouve la petite ville baroque avec ses palais et églises décorées ?",
-    "answer": "Nardò"
-  },
-  {
-    "key": "lecce",
-    "x": 0.53,
-    "y": 0.28,
-    "question": "Enfin, montre-moi la capitale baroque du Salento, avec ses façades sculptées dans la pierre dorée.",
-    "answer": "Lecce"
-  }
-]
+const SHIFT_EAST = 0.04;
+const POIS = [
+  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+SHIFT_EAST,y:0.52,info:"la cathédrale aux mosaïques médiévales (Arbre de Vie) et la chapelle des 800 martyrs" },
+  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+SHIFT_EAST,y:0.56,info:"la grande calanque turquoise entourée de falaises" },
+  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74+SHIFT_EAST,y:0.60,info:"les thermes soufrés et la Villa Sticchi au bord de mer" },
+  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70+SHIFT_EAST,y:0.65,info:"la grotte Zinzulusa et la légende du temple d’Athéna" },
+  { key:"ciolo",         name:"Il Ciolo",                      x:0.64+SHIFT_EAST,y:0.75,info:"le petit fjord avec le pont routier au-dessus de l’eau" },
+  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60,y:0.88,info:"le phare très haut et la cascade monumentale du Finibus Terrae" },
+  { key:"gallipoli",     name:"Gallipoli",                     x:0.35,y:0.62,info:"la vieille ville sur l’îlot relié par un pont" },
+  { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22,y:0.46,info:"les plages claires et la réserve marine" },
+  { key:"nardo",         name:"Nardò",                         x:0.28,y:0.50,info:"le centre baroque et Porto Selvaggio tout proche" },
+  { key:"lecce",         name:"Lecce",                         x:0.53,y:0.28,info:"le baroque en pietra leccese, Santa Croce et le Duomo" }
+];
+
 const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 }; // normalisé [0..1]
 const collected= new Set();
 let currentIdx = 0;
 
-/* Réserves UI: haut pour bandeau (empêche tout chevauchement), bas pour D-pad */
+/* Réserves UI: haut pour bandeau, bas pour D-pad */
 const UI_BOTTOM = 180;
-const UI_TOP    = 170;  // réserve pour la bulle en haut (carte commence sous cette ligne)
+const UI_TOP    = 160;  // réserve pour la bulle en haut
 
 /* =========================================================
-   AUDIO (fond, réussite, échec, fanfare infinie)
+   AUDIO (bg loop, success, fail, finale infinie)
 ========================================================= */
-let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null, finaleLoopTimer=null, finale=false;
-
+let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null, finaleLoopTimer=null;
 function createAudioOnce(){
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   masterGain = audioCtx.createGain(); masterGain.gain.value = 0.60; masterGain.connect(audioCtx.destination);
-  // iOS unlock (1 frame de son vide)
+  // iOS unlock
   const b = audioCtx.createBuffer(1,1,22050); const s = audioCtx.createBufferSource(); s.buffer=b; s.connect(masterGain); s.start(0);
 }
 async function startMusic(){
   try{
-    if (finale) return; // en finale on ne relance pas la musique de fond
     createAudioOnce();
     if (audioCtx.state==='suspended') await audioCtx.resume();
     ping(720,0.20);
@@ -317,7 +239,7 @@ function stopMusic(){
   if(audioCtx && audioCtx.state!=="closed"){ audioCtx.suspend(); }
   musicBtn.textContent="🎵 Musique";
 }
-function toggleMusic(){ if(finale) return; musicOn?stopMusic():startMusic(); }
+function toggleMusic(){ musicOn?stopMusic():startMusic(); }
 musicBtn.addEventListener('click', toggleMusic);
 
 function scheduleSquare(freq,start,dur=0.25,amp=0.30){
@@ -338,7 +260,7 @@ function playPhrase(){
   loopTimer=setTimeout(playPhrase,3000);
 }
 function starEmphasis(){ if(!audioCtx||!masterGain) return; const base=audioCtx.currentTime; [784,880,988,1175].forEach((f,i)=> scheduleSquare(f, base+i*0.08, 0.18, 0.48)); }
-function failSfx(){ if(!audioCtx||!masterGain) return; const t=audioCtx.currentTime; scheduleSquare(196,t,0.22,0.45); scheduleSquare(165,t+0.22,0.20,0.40); }
+function failSfx(){ if(!audioCtx||!masterGain) return; const t=audioCtx.currentTime; scheduleSquare(196,t,0.20,0.45); scheduleSquare(165,t+0.18,0.20,0.38); scheduleSquare(147,t+0.34,0.25,0.34); }
 
 /* Fanfare finale en boucle (jusqu’à Rejouer) + arrêt musique bg */
 function playFinaleLong(){
@@ -357,7 +279,7 @@ function playFinaleLong(){
 /* =========================================================
    FEUX D’ARTIFICE + DANSE
 ========================================================= */
-let fireworks=[], finaleTimer=0, finaleZoom=1, dancePhase=0;
+let fireworks=[], finale=false, finaleTimer=0, finaleZoom=1, dancePhase=0;
 let danceBird={x:0,y:0,scale:1,angle:0}, danceSpider={x:0,y:0,scale:1,angle:0};
 
 function launchFireworksBurst(cx,cy,parts=42, big=true){
@@ -399,12 +321,73 @@ function showTarantulaSuccess(p){
 }
 
 /* =========================================================
+   COLLISIONS / VALIDATION DES POI
+========================================================= */
+let lastFailAt=0; const FAIL_COOLDOWN=900;
+function checkPOI(bx, by, ox, oy, dw, dh){
+  if (finale || currentIdx >= POIS.length) return;
+
+  const p  = POIS[currentIdx];
+  const px = ox + p.x * dw;
+  const py = oy + p.y * dh;
+
+  // Distance au POI attendu
+  const onTarget = Math.hypot(bx - px, by - py) < 44;
+
+  if (onTarget){
+    // --- SUCCÈS ---
+    collected.add(p.key);
+    refreshStars();
+    starEmphasis();           // SFX victoire (one-shot)
+    showTarantulaSuccess(p);  // "Bravo, c’était ..."
+
+    currentIdx++;
+
+    if (currentIdx === POIS.length){
+      // Fin du jeu : lance la finale (danse + feux + fanfare)
+      const last = POIS[POIS.length - 1];
+      const lx   = ox + last.x * dw;
+      const ly   = oy + last.y * dh;
+
+      // Stop musique de fond + fanfare en boucle
+      if (loopTimer){ clearTimeout(loopTimer); loopTimer = null; }
+      musicOn = false;                     // empêche de relancer le fond
+      musicBtn.textContent = "🎵 Musique"; // remet le libellé du bouton
+
+      beginFinale(bx, by, lx, ly);         // danse + feux + fanfare
+      replayBtn.style.display = 'inline-block'; // bouton discret
+    } else {
+      // Pose la question SANS dévoiler le nom
+      askQuestionFor(POIS[currentIdx]);
+    }
+    return;
+  }
+
+  // --- ÉCHEC (contact avec un autre X non encore validé) ---
+  const now = performance.now();
+  if (now - lastFailAt > FAIL_COOLDOWN){
+    for (let i = 0; i < POIS.length; i++){
+      if (i === currentIdx) continue;
+      const q = POIS[i];
+      if (collected.has(q.key)) continue;
+
+      const qx = ox + q.x * dw;
+      const qy = oy + q.y * dh;
+
+      if (Math.hypot(bx - qx, by - qy) < 44){
+        failSfx(); lastFailAt = now; break;
+      }
+    }
+  }
+}
+
+/* =========================================================
    RENDU
 ========================================================= */
 window.running=false;
-let lastTS=0, frameDT=0, lastFailAt=0; const FAIL_COOLDOWN=900;
+let lastTS=0, frameDT=0;
 
-/* util: arrondi */
+/* util: arrondi (safari-safe) */
 function roundRect(ctx,x,y,w,h,r){
   const rr=Math.min(r,w/2,h/2);
   ctx.beginPath();
@@ -417,7 +400,7 @@ function roundRect(ctx,x,y,w,h,r){
   return ctx;
 }
 
-/* étoile */
+/* étoile visuelle */
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
   ctx.beginPath(); const pts=5,inner=R*0.45;
@@ -463,8 +446,7 @@ function draw(ts){
   // Rideau doux finale
   if(finale){ ctx.fillStyle="rgba(0,0,0,0.22)"; ctx.fillRect(0,UI_TOP,W,H-UI_BOTTOM-UI_TOP); }
 
-  /* POI : X identiques tant que non trouvés ; étoile UNIQUEMENT si trouvé.
-     => AUCUNE étoile "indice" n’est dessinée avant de valider. */
+  /* POI : X identiques si pas trouvés ; étoile si trouvé (aucune étoile “indice” avant) */
   for(const p of POIS){
     const x=ox+p.x*dw, y=oy+p.y*dh;
     if(collected.has(p.key)){
@@ -477,7 +459,7 @@ function draw(ts){
     }
   }
 
-  /* Chemin progressif uniquement entre POI déjà validés */
+  /* Chemin progressif uniquement entre POI validés */
   if(!finale && collected.size>0){
     ctx.save(); ctx.strokeStyle="#7a4c25"; ctx.lineWidth=4; ctx.lineCap="round"; ctx.lineJoin="round";
     ctx.beginPath();
@@ -500,34 +482,7 @@ function draw(ts){
   }
 
   /* Collisions : succès (bon POI) / échec (mauvais X) */
-  if(!finale && currentIdx < POIS.length){
-    const p=POIS[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
-    const onTarget = Math.hypot(bx-px,by-py)<44;
-
-    if(onTarget){
-      collected.add(p.key); refreshStars();
-      starEmphasis();
-      showTarantulaSuccess(p);
-      currentIdx++;
-      if(currentIdx===POIS.length){
-        beginFinale(bx,by, ox+POIS[POIS.length-1].x*dw, oy+POIS[POIS.length-1].y*dh);
-        replayBtn.style.display='inline-block'; // fanfare continue tant qu’on ne rejoue pas
-      }else{
-        askQuestionFor(POIS[currentIdx]); // prochaine devinette
-      }
-    }else{
-      // si on touche un autre X non encore validé → échec (cooldown)
-      const now = performance.now();
-      if(now - lastFailAt > FAIL_COOLDOWN){
-        for(let i=0;i<POIS.length;i++){
-          if(i===currentIdx) continue;
-          const q=POIS[i]; if(collected.has(q.key)) continue;
-          const qx=ox+q.x*dw, qy=oy+q.y*dh;
-          if(Math.hypot(bx-qx,by-qy)<44){ failSfx(); lastFailAt = now; break; }
-        }
-      }
-    }
-  }
+  checkPOI(bx, by, ox, oy, dw, dh);
 
   // Feux + Danse
   if(finale || fireworks.length>0){ drawFireworks(); }
@@ -552,25 +507,16 @@ function loop(ts){ if(!window.running) return; draw(ts); requestAnimationFrame(l
 function beginFinale(bx,by,lastPx,lastPy){
   finale=true;
   touch.classList.remove('show');
-  // on libère complètement la vue : on masque le bandeau Tarantula
-  tarTop.classList.remove('show');
+  tarTop.classList.add('show');
 
   // init danse
   danceBird.x=bx; danceBird.y=by; danceSpider.x=lastPx; danceSpider.y=lastPy;
   danceBird.scale=1.0; danceSpider.scale=1.0; dancePhase=0; finaleTimer=0; finaleZoom=1.0;
 
-  // stop musique de fond + empêcher toute relance
-  if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
-  musicOn = false;
-  musicBtn.textContent = "🎵 Musique";
-
-  // fanfare + feux
+  // (La musique de fond a été stoppée côté fanfare/validation)
   playFinaleLong();
   triggerFireworksShow();
   window.__fwInterval__ = setInterval(triggerFireworksShow, 4500);
-
-  // bouton rejouer visible (petit, non bloquant)
-  replayBtn.style.display='inline-block';
 }
 function resetGame(hideOverlay){
   // Stop finale
