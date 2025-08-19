@@ -357,13 +357,6 @@ function draw(ts){
     ctx.restore();
   }
 
-  /* Étoile sur l’objectif courant */
-  if(!finale && currentIdx<POIS.length){
-    const p=POIS[currentIdx]; const x=ox+p.x*dw, y=oy+p.y*dh;
-    drawStarfish(x, y-26, Math.max(18,Math.min(26,Math.min(W,H)*0.03)));
-    placeTarBubble(x,y, dw,dh, ox,oy); // repositionne la bulle loin du POI
-  }
-
   /* Aracne (jeu) ou danse (finale) */
   const bw=Math.min(170,Math.max(90,dw*player.size));
   const bx=ox+player.x*dw, by=oy+player.y*dh;
