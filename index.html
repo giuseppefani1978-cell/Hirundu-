@@ -465,12 +465,19 @@ function loop(ts){ if(!window.running) return; draw(ts); requestAnimationFrame(l
 function beginFinale(bx,by,lastPx,lastPy){
   finale=true;
   touch.classList.remove('show');
-  tarTop.classList.add('show'); // bandeau reste visible
-  // init danse
+  tarTop.classList.add('show');
+
+  // init danse...
   danceBird.x=bx; danceBird.y=by; danceSpider.x=lastPx; danceSpider.y=lastPy;
   danceBird.scale=1.0; danceSpider.scale=1.0; dancePhase=0; finaleTimer=0; finaleZoom=1.0;
+
   // stop musique de fond + lancer fanfare en boucle
   if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
+
+  // ⬇️ ajoute ceci
+  musicOn = false;                     // le fond est considéré "arrêté"
+  musicBtn.textContent = "🎵 Musique"; // bouton redevient "Musique"
+
   playFinaleLong();
   triggerFireworksShow();
   window.__fwInterval__ = setInterval(triggerFireworksShow, 4500);
