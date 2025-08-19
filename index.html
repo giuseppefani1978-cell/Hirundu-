@@ -292,13 +292,6 @@ function playFinaleLong(){
 /* ============ RENDU & BOUCLE ============ */
 const UI_BOTTOM = 180;
 
-function drawStarfish(cx,cy,R){
-  ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
-  ctx.beginPath(); const pts=5,inner=R*0.45;
-  for(let i=0;i<pts*2;i++){const ang=(Math.PI/pts)*i - Math.PI/2; const r=(i%2===0)?R:inner; const x=cx+Math.cos(ang)*r; const y=cy+Math.sin(ang)*r; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);}
-  ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
-}
-
 window.running=false;
 let lastFailAt=0; const FAIL_COOLDOWN=900;
 
