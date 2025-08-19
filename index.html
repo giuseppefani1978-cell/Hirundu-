@@ -12,7 +12,7 @@
   .game{position:relative;flex:1;overflow:hidden}
   canvas{width:100%;height:100%;display:block;background:#e2eef7;touch-action:none}
 
-  /* ====== Overlay (Start / Finale) ====== */
+  /* ====== Overlay (Start) ====== */
   .overlay{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     background:rgba(246,241,225,.84);backdrop-filter:blur(3px);z-index:50
@@ -25,7 +25,7 @@
   .card p{margin:6px 0 14px 0;opacity:.82}
   .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
 
-  /* ====== HUD colonne gauche ====== */
+  /* ====== HUD colonne gauche (vertical) ====== */
   .hud{
     position:absolute;left:8px;top:50%;transform:translateY(-50%);
     background:rgba(255,248,220,.96);border:2px solid #c8b37a;border-radius:10px;
@@ -37,11 +37,11 @@
   /* ====== Bandeau Tarantula FIXE tout en haut (ne couvre pas la carte) ====== */
   .tarTop{
     position:absolute;left:50%;top:6px;transform:translateX(-50%);
-    display:none;align-items:flex-start;gap:8px;z-index:40
+    display:none;align-items:flex-start;gap:8px;z-index:40;max-width:96vw
   }
   .tarTop.show{display:flex}
   .tarTop img{width:64px;height:64px;object-fit:contain;background:transparent;border:none;border-radius:0;box-shadow:none}
-  .bdBubble{max-width:min(700px,92vw);background:#fff;border:1px solid #bbb;border-radius:14px;
+  .bdBubble{max-width:min(780px,92vw);background:#fff;border:1px solid #bbb;border-radius:14px;
             padding:10px 12px;box-shadow:0 4px 10px rgba(0,0,0,.12);position:relative;font-size:14px;line-height:1.35}
   .bdBubble:after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:-10px;border-width:10px;border-style:solid;border-color:transparent transparent #bbb transparent}
   .bdBubble:before{content:"";position:absolute;left:50%;transform:translateX(-50%);top:-9px;border-width:9px;border-style:solid;border-color:transparent transparent #fff transparent}
@@ -55,7 +55,7 @@
        display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;font-weight:800;font-size:22px;box-shadow:0 3px 0 #c8b37a}
   .btn:active{transform:translateY(1px)}
 
-  /* ====== Boutons utilitaires ====== */
+  /* ====== Boutons ====== */
   #musicBtn{
     position:absolute;top:10px;right:10px;z-index:45;
     background:#ffe8a6;border:2px solid #c8b37a;border-radius:10px;padding:8px 12px;font-weight:700;display:none
@@ -191,7 +191,7 @@ function assetFail(who,url,showPlaceholder){
 /* =========================================================
    DONNÉES / POIS / JOUEUR
 ========================================================= */
-const SHIFT_EAST = 0.04; // léger décalage vers l’est pour Otranto→Ciolo
+const SHIFT_EAST = 0.04;
 const POIS = [
   { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+SHIFT_EAST,y:0.52,info:"la cathédrale aux mosaïques médiévales (Arbre de Vie) et la chapelle des 800 martyrs" },
   { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+SHIFT_EAST,y:0.56,info:"la grande calanque turquoise entourée de falaises" },
@@ -211,7 +211,7 @@ let currentIdx = 0;
 
 /* Réserves UI: haut pour bandeau, bas pour D-pad */
 const UI_BOTTOM = 180;
-const UI_TOP    = 112;  // hauteur bandeau Tarantula
+const UI_TOP    = 140;  // ↑ plus grand, pour que la bulle ne mange jamais la carte
 
 /* =========================================================
    AUDIO (bg loop, success, fail, finale infinie)
@@ -251,10 +251,7 @@ function scheduleSquare(freq,start,dur=0.25,amp=0.30){
   o.connect(g).connect(masterGain);
   o.start(start); o.stop(start+dur);
 }
-function ping(freq=440, amp=0.2){
-  if(!audioCtx||!masterGain) return;
-  const t=audioCtx.currentTime; scheduleSquare(freq,t,0.16,amp);
-}
+function ping(freq=440, amp=0.2){ if(!audioCtx||!masterGain) return; const t=audioCtx.currentTime; scheduleSquare(freq,t,0.16,amp); }
 function playPhrase(){
   if(!musicOn||!audioCtx) return;
   const notes=[262,294,330,349,392,440,494,523];
@@ -319,7 +316,7 @@ function showTarantulaSuccess(p){ bdTitle.textContent="Tarantula"; bdText.textCo
 ========================================================= */
 window.running=false;
 let lastTS=0, frameDT=0, lastFailAt=0; const FAIL_COOLDOWN=900;
-const CROSS_SIZE = 6; // taille des X (identiques pour tous)
+const CROSS_SIZE = 6; // taille des X (identiques)
 
 /* util: arrondi */
 function roundRect(ctx,x,y,w,h,r){
@@ -380,15 +377,15 @@ function draw(ts){
   // Rideau doux finale
   if(finale){ ctx.fillStyle="rgba(0,0,0,0.22)"; ctx.fillRect(0,UI_TOP,W,H-UI_BOTTOM-UI_TOP); }
 
-  /* POI : X identiques si pas trouvés ; étoile si trouvé */
+  /* POI : X identiques si pas trouvés ; étoile si trouvé (aucune étoile “indice” avant) */
   for(const p of POIS){
     const x=ox+p.x*dw, y=oy+p.y*dh;
     if(collected.has(p.key)){
       drawStarfish(x, y-22, Math.max(16,Math.min(22,Math.min(W,H)*0.028)));
     }else{
       ctx.save(); ctx.strokeStyle='#b04123'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(x-CROSS_SIZE,y-CROSS_SIZE); ctx.lineTo(x+CROSS_SIZE,y+CROSS_SIZE);
-      ctx.moveTo(x-CROSS_SIZE,y+CROSS_SIZE); ctx.lineTo(x+CROSS_SIZE,y-CROSS_SIZE); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x-6,y-6); ctx.lineTo(x+6,y+6);
+      ctx.moveTo(x-6,y+6); ctx.lineTo(x+6,y-6); ctx.stroke();
       ctx.restore();
     }
   }
@@ -429,13 +426,12 @@ function draw(ts){
         beginFinale(bx,by, ox+POIS[POIS.length-1].x*dw, oy+POIS[POIS.length-1].y*dh);
         replayBtn.style.display='inline-block'; // fanfare continue tant qu’on ne rejoue pas
       }else{
-        // prochaine devinette
-        askQuestionFor(POIS[currentIdx]);
+        askQuestionFor(POIS[currentIdx]); // prochaine devinette
       }
     }else{
       // si on touche un autre X non encore validé → échec (cooldown)
       const now = performance.now();
-      if(now - lastFailAt > FAIL_COOLDOWN){
+      if(now - lastFailAt > 900){
         for(let i=0;i<POIS.length;i++){
           if(i===currentIdx) continue;
           const q=POIS[i]; if(collected.has(q.key)) continue;
@@ -470,6 +466,7 @@ function beginFinale(bx,by,lastPx,lastPy){
   finale=true;
   touch.classList.remove('show');
   tarTop.classList.add('show'); // bandeau reste visible
+  // init danse
   danceBird.x=bx; danceBird.y=by; danceSpider.x=lastPx; danceSpider.y=lastPy;
   danceBird.scale=1.0; danceSpider.scale=1.0; dancePhase=0; finaleTimer=0; finaleZoom=1.0;
   // stop musique de fond + lancer fanfare en boucle
