@@ -309,7 +309,13 @@ function triggerFireworksShow(){ const slots=[0,500,1000,1600,2200,3000]; slots.
    BULLE / QUESTIONS (sans nom)
 ========================================================= */
 function asQuestionFromInfo(info){ const s=(info||"ce lieu").trim(); return `Dis-moi, où est ${s} ?`; }
-function askQuestionFor(p){ bdTitle.textContent="Tarantula"; bdText.textContent=asQuestionFromInfo(p.info); tarTop.classList.add('show'); }
+function askQuestionFor(p){
+  bdTitle.textContent="Tarantula";
+  bdText.textContent=asQuestionFromInfo(p.info);
+  tarTop.classList.add('show');
+  // sécurité position : toujours en haut, centrée, sans recouvrir la carte
+  tarTop.style.top = '6px';
+}
 function showTarantulaSuccess(p){ bdTitle.textContent="Tarantula"; bdText.textContent=`Bravo, c’est exactement ça : ${p.name.split(" — ")[0]} !`; tarTop.classList.add('show'); }
 
 /* =========================================================
