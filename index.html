@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 <title>Salento — Aracne & Tarantula (Chasse au trésor)</title>
 <style>
-  /* ===== Base ===== */
-  html,body{height:100%;margin:0;background:#e9f2f8;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  /* ====== Base & Canvas ====== */
+  html,body{height:100%;margin:0;background:#f6f1e1;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
   *{-webkit-tap-highlight-color:transparent}
   .wrap{display:flex;flex-direction:column;height:100%}
   .game{position:relative;flex:1;overflow:hidden}
-  canvas{width:100%;height:100%;display:block;background:#d9e9f7;touch-action:none}
+  canvas{width:100%;height:100%;display:block;background:#e2eef7;touch-action:none}
 
-  /* ===== Overlay Start ===== */
+  /* ====== Overlay (Start) ====== */
   .overlay{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     background:rgba(246,241,225,.84);backdrop-filter:blur(3px);z-index:50
@@ -25,72 +25,52 @@
   .card p{margin:6px 0 14px 0;opacity:.82}
   .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
 
-  /* ===== Left UI column: Tarantula + HUD ===== */
-  .leftUI{
-    position:absolute;left:10px;top:10px;z-index:40; /* tout le bloc reste au bord gauche */
-    width:148px; /* largeur compacte */
+  /* ====== HUD — narrow vertical at left ====== */
+  .hud{
+    position:absolute;left:8px;top:50%;transform:translateY(-50%);
+    background:rgba(255,248,220,.96);border:2px solid #c8b37a;border-radius:10px;
+    padding:10px 8px;font-size:14px;z-index:22;width:96px;display:flex;flex-direction:column;align-items:center;gap:6px
   }
+  .hud h3{margin:0;font-size:15px;line-height:1}
+  .hud .score{margin:0;font-weight:800;font-size:14px;line-height:1.1}
+  .stars{display:flex;flex-direction:column;gap:4px;margin-top:2px;align-items:center}
+  .star{width:16px;height:16px;opacity:.95}
 
-  /* Bulle Tarantula – compacte et horizontale, accrochée au coin haut-gauche du HUD */
-  .tarFixed{
-    position:relative; /* pour la flèche */
-    display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;
+  /* ====== Tarantula bubble — top-left, horizontal, compact ====== */
+  .tarTop{
+    position:absolute;left:8px;top:8px;display:none;align-items:flex-start;gap:8px;z-index:40;max-width:calc(100vw - 16px)
   }
-  .tarFixed img{width:42px;height:42px;object-fit:contain}
+  .tarTop.show{display:flex}
+  .tarTop img{width:56px;height:56px;object-fit:contain;background:transparent;border:none;border-radius:0;box-shadow:none}
   .bdBubble{
-    flex:1;max-width:calc(148px - 50px); /* largeur calée sur la colonne */
-    background:#fff;border:1px solid #bbb;border-radius:10px;padding:8px 10px;
-    box-shadow:0 3px 10px rgba(0,0,0,.12);font-size:13px;line-height:1.25
+    max-width:min(860px,92vw);
+    background:#fff;border:1px solid #bbb;border-radius:12px;
+    padding:8px 10px;box-shadow:0 4px 10px rgba(0,0,0,.12);
+    font-size:14px;line-height:1.35
   }
-  .bdTitle{font-weight:700;margin:0 0 4px 0;text-align:left}
-  /* petite flèche vers le haut-gauche du HUD */
-  .bdBubble:after{
-    content:"";position:absolute;left:36px;top:44px; /* pointe vers l’avatar */
-    width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;
-    border-bottom:8px solid #bbb;transform:translateY(-14px) rotate(180deg);
-  }
-  .bdBubble:before{
-    content:"";position:absolute;left:36px;top:44px;width:0;height:0;
-    border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:7px solid #fff;
-    transform:translateY(-12px) rotate(180deg);
-  }
+  .bdTitle{font-weight:700;margin:0 0 4px 0}
+  .bdBubble p{margin:0}
 
- .hud {
-  display: flex;
-  flex-direction: column; /* stack children vertically */
-  align-items: center;    /* center horizontally if you want */
-}
-
-.hud h3 {
-  margin: 0;
-}
-
-.hud .score {
-  margin-top: 4px; /* small spacing below “Étoiles” */
-  font-weight: bold;
-}
-
-
-  /* ===== D-pad (réduit) ===== */
-  .touch{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:none;gap:10px;align-items:center;z-index:30}
+  /* ====== D-pad (smaller) ====== */
+  .touch{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:none;gap:12px;align-items:center;z-index:30}
   .touch.show{display:flex}
   .dpad{display:grid;grid-template-columns:56px 56px 56px;grid-template-rows:56px 56px 56px;gap:10px}
   .btn{width:56px;height:56px;border-radius:12px;border:2px solid #c8b37a;background:#fff7de;
        display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none;font-weight:800;font-size:20px;box-shadow:0 3px 0 #c8b37a}
   .btn:active{transform:translateY(1px)}
 
-  /* ===== Buttons ===== */
+  /* ====== Buttons ====== */
   #musicBtn{
     position:absolute;top:10px;right:10px;z-index:45;
     background:#ffe8a6;border:2px solid #c8b37a;border-radius:10px;padding:8px 12px;font-weight:700;display:none
   }
   #replayFloat{
-    position:absolute;bottom:14px;right:14px;z-index:46;display:none;
-    border:2px solid #7ac37a;background:#eaffea;font-weight:800;border-radius:12px;padding:10px 16px;
+    position:absolute;top:12px;left:50%;transform:translateX(-50%);
+    z-index:46;display:none;border:2px solid #7ac37a;background:#eaffea;font-weight:800;border-radius:10px;padding:8px 12px;
     box-shadow:0 6px 14px rgba(0,0,0,.15)
   }
 
-  /* ===== Err / Debug ===== */
+  /* ====== Errors / Debug ====== */
   .err{position:absolute;right:10px;top:10px;background:#ffefef;border:2px solid #d66;border-radius:10px;padding:8px 10px;font-size:12px;color:#900;z-index:60;max-width:min(320px,60vw)}
   .err b{display:block;margin-bottom:4px}
   #debugBox{position:fixed;left:10px;bottom:10px;z-index:9999;background:#ffefef;border:2px solid #d66;
@@ -100,7 +80,7 @@
 <body>
 <div class="wrap">
   <div class="game">
-    <!-- ===== Overlay ===== -->
+    <!-- ===== Overlay Start ===== -->
     <div class="overlay" id="overlay">
       <div class="card" id="overlayCard">
         <h1>Salento — Aracne & Tarantula</h1>
@@ -109,34 +89,29 @@
       </div>
     </div>
 
-    <!-- ===== Top-right buttons ===== -->
+    <!-- ===== UI ===== -->
     <button id="musicBtn">🎵 Musique</button>
     <button id="replayFloat">⟲ Rejouer</button>
-
-    <!-- ===== Errors ===== -->
     <div class="err" id="err" style="display:none"><b>⚠️ Problème d’assets</b><div id="errText"></div></div>
-
-    <!-- ===== Canvas ===== -->
     <canvas id="c"></canvas>
 
-    <!-- ===== Left Column: Tarantula + HUD ===== -->
-    <div class="leftUI">
-      <div class="tarFixed" id="tarFixed">
-        <img id="tarAvatar" alt="Tarantula">
-        <div class="bdBubble">
-          <div class="bdTitle" id="bdTitle">Tarantula</div>
-          <div id="bdText"></div>
-        </div>
-      </div>
+    <!-- HUD colonne gauche (narrow) -->
+    <div class="hud" id="hud">
+      <h3>Étoiles</h3>
+      <div class="score" id="score">0/10</div>
+      <div class="stars" id="stars"></div>
+    </div>
 
-      <div class="hud">
-        <h3>Étoiles</h3>
-        <div class="score" id="score">0/10</div>
-        <div class="stars" id="stars"></div>
+    <!-- Tarantula bubble top-left -->
+    <div class="tarTop" id="tarTop">
+      <img id="tarAvatar" alt="Tarantula">
+      <div class="bdBubble">
+        <div class="bdTitle" id="bdTitle">Tarantula</div>
+        <p id="bdText"></p>
       </div>
     </div>
 
-    <!-- ===== D-pad ===== -->
+    <!-- D-pad tactile -->
     <div class="touch" id="touch">
       <div class="dpad">
         <div></div> <div class="btn" data-dx="0" data-dy="-1">↑</div> <div></div>
@@ -146,7 +121,6 @@
     </div>
   </div>
 </div>
-
 <div id="debugBox"></div>
 
 <script>
@@ -159,7 +133,7 @@ window.startGame = function(){
     document.getElementById('touch').classList.add('show');
     document.getElementById('musicBtn').style.display = 'inline-block';
     resetGame(false);
-    if (typeof startMusic === 'function') startMusic(); // iOS: déverrouillage audio
+    if (typeof startMusic === 'function') startMusic(); // iOS: geste utilisateur
     if (typeof resize === 'function') resize();
     window.running = true;
     requestAnimationFrame(loop);
@@ -175,6 +149,7 @@ window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message
 /* =========================================================
    ASSETS
 ========================================================= */
+/* ⚠️ Chemins EXACTS, y compris les espaces */
 const MAP_URL       = "assets/salento-map.jpeg";
 const BIRD_URL      = "assets/aracne .PNG";
 const TARANTULA_URL = "assets/tarantula .PNG";
@@ -195,7 +170,7 @@ resize(); addEventListener('resize', resize);
 const touch     = document.getElementById('touch');
 const scoreEl   = document.getElementById('score');
 const starsEl   = document.getElementById('stars');
-const tarBox    = document.getElementById('tarFixed');
+const tarTop    = document.getElementById('tarTop');
 const tarAvatar = document.getElementById('tarAvatar');
 const bdTitle   = document.getElementById('bdTitle');
 const bdText    = document.getElementById('bdText');
@@ -221,29 +196,29 @@ function assetFail(who,url,showPlaceholder){
 /* =========================================================
    DONNÉES / POIS / JOUEUR
 ========================================================= */
-/* On décale la “côte Est” un peu vers la droite, et un soupçon vers le bas pour les 6 POI demandés */
-const SHIFT_EAST = 0.06;   // un peu plus à l’est
-const SHIFT_DOWN = 0.02;   // très léger vers le sud (uniquement pour ceux listés)
+/* Légère translation de certains POI vers la droite/bas pour coller au trait de côte */
+const SHIFT_COAST = { x:0.035, y:0.02 }; // tweak fin
+
 const POIS = [
-  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+SHIFT_EAST, y:0.52+SHIFT_DOWN, info:"la cathédrale aux mosaïques médiévales (Arbre de Vie) et la chapelle des 800 martyrs" },
-  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+SHIFT_EAST, y:0.56+SHIFT_DOWN, info:"la grande calanque turquoise entourée de falaises" },
-  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74+SHIFT_EAST, y:0.60+SHIFT_DOWN, info:"les thermes soufrés et la Villa Sticchi au bord de mer" },
-  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70+SHIFT_EAST, y:0.65+SHIFT_DOWN, info:"la grotte Zinzulusa et la légende du temple d’Athéna" },
-  { key:"ciolo",         name:"Il Ciolo",                      x:0.64+SHIFT_EAST, y:0.75+SHIFT_DOWN, info:"le petit fjord avec le pont routier au-dessus de l’eau" },
-  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60,            y:0.88+SHIFT_DOWN, info:"le phare très haut et la cascade monumentale du Finibus Terrae" },
-  { key:"gallipoli",     name:"Gallipoli",                     x:0.35,            y:0.62,            info:"la vieille ville sur l’îlot relié par un pont" },
-  { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22,            y:0.46,            info:"les plages claires et la réserve marine" },
-  { key:"nardo",         name:"Nardò",                         x:0.28,            y:0.50,            info:"le centre baroque et Porto Selvaggio tout proche" },
-  { key:"lecce",         name:"Lecce",                         x:0.53,            y:0.28,            info:"le baroque en pietra leccese, Santa Croce et le Duomo" }
+  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+0.04+SHIFT_COAST.x, y:0.52+SHIFT_COAST.y, info:"la cathédrale aux mosaïques médiévales et la chapelle des 800 martyrs" },
+  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+0.04+SHIFT_COAST.x, y:0.56+SHIFT_COAST.y, info:"la grande calanque aux eaux turquoises entourée de falaises" },
+  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74+0.04+SHIFT_COAST.x, y:0.60+SHIFT_COAST.y, info:"les thermes soufrés et la Villa Sticchi en bord de mer" },
+  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70+0.04+SHIFT_COAST.x, y:0.65+SHIFT_COAST.y, info:"la grotte Zinzulusa et le souvenir du temple d’Athéna" },
+  { key:"ciolo",         name:"Il Ciolo",                      x:0.64+0.04+SHIFT_COAST.x, y:0.75+SHIFT_COAST.y, info:"le petit fjord avec le grand pont routier" },
+  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60+SHIFT_COAST.x,      y:0.88+SHIFT_COAST.y, info:"le phare très haut et la cascade monumentale du Finibus Terrae" },
+  { key:"gallipoli",     name:"Gallipoli",                     x:0.35, y:0.62, info:"la vieille ville bâtie sur un îlot relié par un pont" },
+  { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22, y:0.46, info:"les plages claires et la réserve marine" },
+  { key:"nardo",         name:"Nardò",                         x:0.28, y:0.50, info:"le centre baroque et Porto Selvaggio tout proche" },
+  { key:"lecce",         name:"Lecce",                         x:0.53, y:0.28, info:"le baroque en pietra leccese, Santa Croce et le Duomo" }
 ];
 
 const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 }; // normalisé [0..1]
 const collected= new Set();
 let currentIdx = 0;
 
-/* Réserves UI : plus aucune grande réserve en haut (la bulle est dans la colonne gauche) */
-const UI_BOTTOM = 160; // pour le D-pad (réduit)
-const UI_TOP    = 12;  // presque rien
+/* Réserves UI: haut pour la bulle, bas pour D-pad */
+const UI_BOTTOM = 160;   // D-pad réduit
+const UI_TOP    = 120;   // bandeau en haut (bulle) — carte commence sous cette hauteur
 
 /* =========================================================
    AUDIO (bg loop, success, fail, finale infinie)
@@ -252,7 +227,7 @@ let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null, finaleLoopTim
 function createAudioOnce(){
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  masterGain = audioCtx.createGain(); masterGain.gain.value = 0.60; masterGain.connect(audioCtx.destination);
+  masterGain = audioCtx.createGain(); masterGain.gain.value = 0.58; masterGain.connect(audioCtx.destination);
   // iOS unlock
   const b = audioCtx.createBuffer(1,1,22050); const s = audioCtx.createBufferSource(); s.buffer=b; s.connect(masterGain); s.start(0);
 }
@@ -288,11 +263,11 @@ function playPhrase(){
   if(!musicOn||!audioCtx) return;
   const notes=[262,294,330,349,392,440,494,523];
   let t=audioCtx.currentTime;
-  notes.forEach(f=>{ scheduleSquare(f,t,0.26,0.30); t+=0.30; });
-  loopTimer=setTimeout(playPhrase,3000);
+  notes.forEach(f=>{ scheduleSquare(f,t,0.24,0.28); t+=0.28; });
+  loopTimer=setTimeout(playPhrase,2800);
 }
-function starEmphasis(){ if(!audioCtx||!masterGain) return; const base=audioCtx.currentTime; [784,880,988,1175].forEach((f,i)=> scheduleSquare(f, base+i*0.08, 0.18, 0.48)); }
-function failSfx(){ if(!audioCtx||!masterGain) return; const t=audioCtx.currentTime; scheduleSquare(196,t,0.20,0.45); scheduleSquare(165,t+0.18,0.20,0.38); scheduleSquare(147,t+0.34,0.25,0.34); }
+function starEmphasis(){ if(!audioCtx||!masterGain) return; const base=audioCtx.currentTime; [784,880,988,1175].forEach((f,i)=> scheduleSquare(f, base+i*0.08, 0.18, 0.46)); }
+function failSfx(){ if(!audioCtx||!masterGain) return; const t=audioCtx.currentTime; scheduleSquare(196,t,0.20,0.42); scheduleSquare(165,t+0.18,0.20,0.36); scheduleSquare(147,t+0.34,0.25,0.32); }
 
 /* Fanfare finale en boucle (jusqu’à Rejouer) + arrêt musique bg */
 function playFinaleLong(){
@@ -317,7 +292,7 @@ let danceBird={x:0,y:0,scale:1,angle:0}, danceSpider={x:0,y:0,scale:1,angle:0};
 function launchFireworksBurst(cx,cy,parts=42, big=true){
   for(let i=0;i<parts;i++){
     const ang=(i/parts)*Math.PI*2, speed=(big?160:90)+Math.random()*(big?180:90);
-    fireworks.push({ x:cx,y:cy, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed, life:1.3+Math.random()*0.8, age:0, color:`hsl(${Math.floor(Math.random()*360)},82%,60%)`, baseSize: big?3.6:2.2 });
+    fireworks.push({ x:cx,y:cy, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed, life:1.3+Math.random()*.8, age:0, color:`hsl(${Math.floor(Math.random()*360)},82%,60%)`, baseSize: big?3.6:2.2 });
   }
 }
 function updateFireworks(dt){ const g=140; fireworks=fireworks.filter(p=>{ p.age+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=g*dt*0.5; return p.age<p.life; }); }
@@ -334,29 +309,51 @@ function drawFireworks(){
   }
   ctx.restore();
 }
-function triggerFireworksShow(){ const slots=[0,500,1000,1600,2200,3000]; slots.forEach((t,i)=> setTimeout(()=> launchFireworksBurst((0.2+0.6*Math.random())*W, UI_TOP+(0.1+0.7*Math.random())*(H-UI_BOTTOM-UI_TOP), 40+(i*4), true), t)); }
+function triggerFireworksShow(){
+  const slots=[0,500,1000,1600,2200,3000];
+  slots.forEach((t,i)=> setTimeout(()=> launchFireworksBurst((0.2+0.6*Math.random())*W, UI_TOP+(0.1+0.7*Math.random())*(H-UI_BOTTOM-UI_TOP), 40+(i*4), true), t));
+}
 
 /* =========================================================
    BULLE / QUESTIONS (sans nom)
 ========================================================= */
-function asQuestionFromInfo(info){ const s=(info||"ce lieu").trim(); return `Dis-moi, où est ${s} ?`; }
+function asQuestionFromInfo(info){
+  const s=(info||"ce lieu").trim();
+  // question naturelle sans donner le nom
+  return `Dis-moi, où est ${s} ?`;
+}
 function askQuestionFor(p){
   bdTitle.textContent="Tarantula";
   bdText.textContent=asQuestionFromInfo(p.info);
-  tarBox.style.display='flex';
+  tarTop.classList.add('show');
+  tarTop.style.left = '8px'; tarTop.style.top = '8px';
 }
 function showTarantulaSuccess(p){
   bdTitle.textContent="Tarantula";
   bdText.textContent=`Bravo, c’est exactement ça : ${p.name.split(" — ")[0]} !`;
-  tarBox.style.display='flex';
+  tarTop.classList.add('show');
 }
 
 /* =========================================================
    RENDU
 ========================================================= */
 window.running=false;
-let lastTS=0, frameDT=0, lastFailAt=0;
+let lastTS=0, frameDT=0, lastFailAt=0; const FAIL_COOLDOWN=900;
 
+/* util: arrondi */
+function roundRect(ctx,x,y,w,h,r){
+  const rr=Math.min(r,w/2,h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr,y);
+  ctx.arcTo(x+w,y,  x+w,y+h, rr);
+  ctx.arcTo(x+w,y+h,x,  y+h, rr);
+  ctx.arcTo(x,  y+h,x,  y,   rr);
+  ctx.arcTo(x,  y,  x+w,y,   rr);
+  ctx.closePath();
+  return ctx;
+}
+
+/* étoile */
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
   ctx.beginPath(); const pts=5,inner=R*0.45;
@@ -364,13 +361,17 @@ function drawStarfish(cx,cy,R){
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
 
-/* HUD étoiles (score 0/10 sous le titre) */
+/* HUD étoiles */
 function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
 function refreshStars(){
-  scoreEl.textContent = `${collected.size}/10`;
+  const n = collected.size;
+  scoreEl.textContent = `${n}/10`;
   starsEl.innerHTML='';
   for(let i=0;i<10;i++){
-    const im=new Image(); im.className='star'; im.src=starSVG(i<collected.size?"#d26f45":"#f0c9a7"); starsEl.appendChild(im);
+    const im=new Image();
+    im.className='star';
+    im.src=starSVG(i<n?"#d26f45":"#f0c9a7");
+    starsEl.appendChild(im);
   }
 }
 refreshStars();
@@ -393,7 +394,7 @@ function draw(ts){
     }
   }
 
-  /* Zone carte : presque toute la hauteur (UI_TOP minime) */
+  /* Zone carte: sous UI_TOP, au-dessus D-pad (donc la bulle ne recouvre jamais la carte) */
   const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
   const availW=W, availH=Math.max(200, H-UI_BOTTOM-UI_TOP);
   const scale=Math.min(availW/mw, availH/mh), dw=mw*scale, dh=mh*scale;
@@ -408,11 +409,11 @@ function draw(ts){
   // Rideau doux finale
   if(finale){ ctx.fillStyle="rgba(0,0,0,0.22)"; ctx.fillRect(0,UI_TOP,W,H-UI_BOTTOM-UI_TOP); }
 
-  /* POI : X identiques si pas trouvés ; étoile si trouvé (aucun “indice” avant) */
+  /* POI : X identiques si pas trouvés ; étoile si trouvé (aucun indice avant) */
   for(const p of POIS){
     const x=ox+p.x*dw, y=oy+p.y*dh;
     if(collected.has(p.key)){
-      drawStarfish(x, y-22, Math.max(16,Math.min(22,Math.min(W,H)*0.028)));
+      drawStarfish(x, y-20, Math.max(14,Math.min(22,Math.min(W,H)*0.028)));
     }else{
       ctx.save(); ctx.strokeStyle='#b04123'; ctx.lineWidth=2;
       ctx.beginPath(); ctx.moveTo(x-6,y-6); ctx.lineTo(x+6,y+6);
@@ -421,7 +422,7 @@ function draw(ts){
     }
   }
 
-  /* Chemin progressif uniquement entre POI validés */
+  /* Chemin progressif uniquement entre POI déjà validés */
   if(!finale && collected.size>0){
     ctx.save(); ctx.strokeStyle="#7a4c25"; ctx.lineWidth=4; ctx.lineCap="round"; ctx.lineJoin="round";
     ctx.beginPath();
@@ -436,7 +437,7 @@ function draw(ts){
   }
 
   /* Aracne (jeu) / danse (finale) */
-  const bw=Math.min(170,Math.max(90,dw*player.size));
+  const bw=Math.min(160,Math.max(90,dw*player.size));
   const bx=ox+player.x*dw, by=oy+player.y*dh;
   if(!finale){
     if (birdImg.complete && birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2, by-bw/2, bw, bw);
@@ -457,12 +458,12 @@ function draw(ts){
         beginFinale(bx,by, ox+POIS[POIS.length-1].x*dw, oy+POIS[POIS.length-1].y*dh);
         replayBtn.style.display='inline-block'; // fanfare continue tant qu’on ne rejoue pas
       }else{
-        askQuestionFor(POIS[currentIdx]);
+        askQuestionFor(POIS[currentIdx]); // prochaine devinette
       }
     }else{
-      // si on touche un autre X non validé → échec (cooldown)
+      // si on touche un autre X non encore validé → échec (cooldown)
       const now = performance.now();
-      if(now - lastFailAt > 900){
+      if(now - lastFailAt > FAIL_COOLDOWN){
         for(let i=0;i<POIS.length;i++){
           if(i===currentIdx) continue;
           const q=POIS[i]; if(collected.has(q.key)) continue;
@@ -496,16 +497,16 @@ function loop(ts){ if(!window.running) return; draw(ts); requestAnimationFrame(l
 function beginFinale(bx,by,lastPx,lastPy){
   finale=true;
   touch.classList.remove('show');
-  tarBox.style.display='flex';
+  tarTop.classList.add('show');
 
   // init danse
   danceBird.x=bx; danceBird.y=by; danceSpider.x=lastPx; danceSpider.y=lastPy;
   danceBird.scale=1.0; danceSpider.scale=1.0; dancePhase=0; finaleTimer=0; finaleZoom=1.0;
 
-  // stop musique de fond + fanfare en boucle
+  // stop musique de fond + lancer fanfare en boucle
   if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
-  musicOn = false;                     // empêche la relance du fond
-  musicBtn.textContent = "🎵 Musique";
+  musicOn = false;                     // empêche la relance auto du fond
+  musicBtn.textContent = "🎵 Musique"; // bouton redevient "Musique"
 
   playFinaleLong();
   triggerFireworksShow();
