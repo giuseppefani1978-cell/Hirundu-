@@ -34,7 +34,7 @@
   .stars{display:flex;flex-direction:column;gap:4px;margin-top:6px}
   .star{width:18px;height:18px;opacity:.95}
 
-  /* ====== Bandeau Tarantula FIXE tout en haut (ne couvre pas la carte) ====== */
+  /* ====== Bandeau Tarantula FIXE tout en haut ====== */
   .tarTop{
     position:absolute;left:50%;top:6px;transform:translateX(-50%);
     display:none;align-items:flex-start;gap:8px;z-index:40;max-width:96vw
@@ -211,7 +211,7 @@ let currentIdx = 0;
 
 /* Réserves UI: haut pour bandeau, bas pour D-pad */
 const UI_BOTTOM = 180;
-const UI_TOP    = 160;  // un peu plus haut pour laisser respirer la carte sous la bulle
+const UI_TOP    = 160;  // réserve pour la bulle en haut
 
 /* =========================================================
    AUDIO (bg loop, success, fail, finale infinie)
@@ -312,55 +312,19 @@ function askQuestionFor(p){
   bdTitle.textContent="Tarantula";
   bdText.textContent=asQuestionFromInfo(p.info);
   tarTop.classList.add('show');
-  // sécurité position : toujours en haut, centrée, sans recouvrir la carte
-  tarTop.style.top = '6px';
+  tarTop.style.top = '6px'; // reste en haut, hors carte
 }
-function showTarantulaSuccess(p){ bdTitle.textContent="Tarantula"; bdText.textContent=`Bravo, c’est exactement ça : ${p.name.split(" — ")[0]} !`; tarTop.classList.add('show'); }
+function showTarantulaSuccess(p){
+  bdTitle.textContent="Tarantula";
+  bdText.textContent=`Bravo, c’est exactement ça : ${p.name.split(" — ")[0]} !`;
+  tarTop.classList.add('show');
+}
 
 /* =========================================================
    RENDU
 ========================================================= */
 window.running=false;
 let lastTS=0, frameDT=0, lastFailAt=0; const FAIL_COOLDOWN=900;
-const CROSS_SIZE = 6; // taille des X (identiques)
-
-/* ---------- PATCH 2 : mini "star-pop" à la collecte ---------- */
-const starPops=[]; // {x,y,age,life,vx,vy}
-function spawnStarPop(x,y){
-  // petite gerbe de 14 particules dorées
-  for(let i=0;i<14;i++){
-    const ang = (i/14)*Math.PI*2 + Math.random()*0.3;
-    const spd = 60 + Math.random()*120;
-    starPops.push({
-      x,y,
-      vx: Math.cos(ang)*spd,
-      vy: Math.sin(ang)*spd,
-      age:0, life:0.55+Math.random()*0.35
-    });
-  }
-}
-function updateStarPops(dt){
-  for(let i=starPops.length-1;i>=0;i--){
-    const p=starPops[i];
-    p.age += dt;
-    p.x   += p.vx*dt;
-    p.y   += p.vy*dt;
-    p.vy  += 180*dt*0.4; // légère gravité
-    if(p.age>=p.life) starPops.splice(i,1);
-  }
-}
-function drawStarPops(){
-  if(!starPops.length) return;
-  ctx.save();
-  for(const p of starPops){
-    const a = 1 - (p.age/p.life);
-    ctx.globalAlpha = Math.max(0,a);
-    ctx.fillStyle = '#f3b46a';
-    ctx.beginPath(); ctx.arc(p.x,p.y, 2.2+1.8*(1-a), 0, Math.PI*2); ctx.fill();
-  }
-  ctx.restore();
-}
-/* ------------------------------------------------------------ */
 
 /* util: arrondi */
 function roundRect(ctx,x,y,w,h,r){
@@ -404,8 +368,6 @@ function draw(ts){
       danceBird.scale+=(1.65-danceBird.scale)*0.05; danceSpider.scale+=(1.55-danceSpider.scale)*0.05;
       danceBird.angle=Math.sin(dancePhase)*0.25; danceSpider.angle=Math.sin(dancePhase+Math.PI/2)*0.20;
     }
-    // PATCH 2: update des star-pops
-    updateStarPops(frameDT);
   }
 
   /* Zone carte: sous UI_TOP, au-dessus D-pad */
@@ -466,9 +428,6 @@ function draw(ts){
     if(onTarget){
       collected.add(p.key); refreshStars();
       starEmphasis();
-      // PATCH 2: gerbe d’étoiles à la collecte
-      spawnStarPop(px, py-22);
-
       showTarantulaSuccess(p);
       currentIdx++;
       if(currentIdx===POIS.length){
@@ -491,8 +450,7 @@ function draw(ts){
     }
   }
 
-  // Feux + Danse + PATCH 2: rendu des star-pops
-  drawStarPops();
+  // Feux + Danse
   if(finale || fireworks.length>0){ drawFireworks(); }
   if(finale){
     drawDancer(birdImg,   danceBird.x,   danceBird.y,   bw*danceBird.scale,      danceBird.angle);
@@ -517,13 +475,13 @@ function beginFinale(bx,by,lastPx,lastPy){
   touch.classList.remove('show');
   tarTop.classList.add('show');
 
-  // init danse...
+  // init danse
   danceBird.x=bx; danceBird.y=by; danceSpider.x=lastPx; danceSpider.y=lastPy;
   danceBird.scale=1.0; danceSpider.scale=1.0; dancePhase=0; finaleTimer=0; finaleZoom=1.0;
 
   // stop musique de fond + lancer fanfare en boucle
   if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
-  musicOn = false;                     // le fond est considéré "arrêté"
+  musicOn = false;                     // empêche toute relance du fond
   musicBtn.textContent = "🎵 Musique"; // bouton redevient "Musique"
 
   playFinaleLong();
@@ -541,7 +499,7 @@ function resetGame(hideOverlay){
   player.x=0.55; player.y=0.25;
   // Première question
   askQuestionFor(POIS[currentIdx]);
-  // Musique de fond si activée
+  // Musique de fond si activée par l’utilisateur
   if(musicOn){ if(loopTimer){ clearTimeout(loopTimer); } playPhrase(); }
   if(hideOverlay){ const ov=document.getElementById('overlay'); ov.style.display='none'; }
 }
