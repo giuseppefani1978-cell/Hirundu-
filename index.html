@@ -209,21 +209,78 @@ function assetFail(who,url,showPlaceholder){
 /* =========================================================
    DONNÉES / POIS / JOUEUR
 ========================================================= */
-const SHIFT_EAST = 0.04;
-/* ⚠️ Les infos ne révèlent pas le nom : servent aux questions */
-const POIS = [
-  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+SHIFT_EAST,y:0.52,info:"la cathédrale aux mosaïques médiévales et la chapelle des 800 martyrs" },
-  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+SHIFT_EAST,y:0.56,info:"la grande calanque turquoise entourée de falaises" },
-  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74+SHIFT_EAST,y:0.60,info:"les thermes soufrés et la Villa Sticchi au bord de mer" },
-  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70+SHIFT_EAST,y:0.65,info:"la grotte Zinzulusa et la légende du temple d’Athéna" },
-  { key:"ciolo",         name:"Il Ciolo",                      x:0.64+SHIFT_EAST,y:0.75,info:"le petit fjord avec le pont routier au-dessus de l’eau" },
-  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60,y:0.88,info:"le phare très haut et la cascade monumentale du Finibus Terrae" },
-  { key:"gallipoli",     name:"Gallipoli",                     x:0.35,y:0.62,info:"la vieille ville sur un îlot relié par un pont" },
-  { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22,y:0.46,info:"les plages claires et la réserve marine" },
-  { key:"nardo",         name:"Nardò",                         x:0.28,y:0.50,info:"le centre baroque et Porto Selvaggio tout proche" },
-  { key:"lecce",         name:"Lecce",                         x:0.53,y:0.28,info:"le baroque en pierre leccese, Santa Croce et le Duomo" }
-];
-
+  [
+  {
+    "key": "otranto",
+    "x": 0.9776,
+    "y": 0.465,
+    "question": "Où se trouve la ville au bord de l’Adriatique, célèbre pour sa cathédrale et ses mosaïques médiévales ?",
+    "answer": "Otranto — Cathédrale"
+  },
+  {
+    "key": "portobadisco",
+    "x": 1,
+    "y": 0.455,
+    "question": "Et là, dis-moi, elle est où la grande calanque turquoise entourée de falaises blanches ?",
+    "answer": "Porto Badisco — Calanque"
+  },
+  {
+    "key": "santacesarea",
+    "x": 0.78,
+    "y": 0.6,
+    "question": "Quel est le village thermal perché sur les falaises, connu pour ses grottes sulfureuses ?",
+    "answer": "Santa Cesarea Terme"
+  },
+  {
+    "key": "castro",
+    "x": 0.8843,
+    "y": 0.6542,
+    "question": "Où se trouvait l’ancien Castrum Minervae, au sommet d’une falaise face à la mer ?",
+    "answer": "Castro — Castrum Minervae"
+  },
+  {
+    "key": "ciolo",
+    "x": 0.8475,
+    "y": 0.7143,
+    "question": "Peux-tu me montrer le pont vertigineux qui surplombe une crique étroite et profonde ?",
+    "answer": "Il Ciolo"
+  },
+  {
+    "key": "leuca",
+    "x": 0.8193,
+    "y": 0.9275,
+    "question": "Quel est le cap tout au sud, là où l’Adriatique et l’Ionienne se rencontrent ?",
+    "answer": "Santa Maria di Leuca"
+  },
+  {
+    "key": "gallipoli",
+    "x": 0.2514,
+    "y": 0.6335,
+    "question": "Et si tu trouves la cité fortifiée bâtie sur une île reliée par un pont ?",
+    "answer": "Gallipoli"
+  },
+  {
+    "key": "portocesareo",
+    "x": 0.22,
+    "y": 0.46,
+    "question": "Quel est le port de pêche entouré de plages et de lagunes aux eaux peu profondes ?",
+    "answer": "Porto Cesareo"
+  },
+  {
+    "key": "nardo",
+    "x": 0.3431,
+    "y": 0.48,
+    "question": "Où se trouve la petite ville baroque avec ses palais et églises décorées ?",
+    "answer": "Nardò"
+  },
+  {
+    "key": "lecce",
+    "x": 0.53,
+    "y": 0.28,
+    "question": "Enfin, montre-moi la capitale baroque du Salento, avec ses façades sculptées dans la pierre dorée.",
+    "answer": "Lecce"
+  }
+]
 const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 }; // normalisé [0..1]
 const collected= new Set();
 let currentIdx = 0;
