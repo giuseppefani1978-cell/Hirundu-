@@ -211,7 +211,6 @@ let currentIdx = 0;
 
 /* Réserves UI: haut pour bandeau, bas pour D-pad */
 const UI_BOTTOM = 180;
-// Avant : const UI_TOP    = 140;
 const UI_TOP    = 160;  // un peu plus haut pour laisser respirer la carte sous la bulle
 
 /* =========================================================
@@ -325,6 +324,44 @@ window.running=false;
 let lastTS=0, frameDT=0, lastFailAt=0; const FAIL_COOLDOWN=900;
 const CROSS_SIZE = 6; // taille des X (identiques)
 
+/* ---------- PATCH 2 : mini "star-pop" à la collecte ---------- */
+const starPops=[]; // {x,y,age,life,vx,vy}
+function spawnStarPop(x,y){
+  // petite gerbe de 14 particules dorées
+  for(let i=0;i<14;i++){
+    const ang = (i/14)*Math.PI*2 + Math.random()*0.3;
+    const spd = 60 + Math.random()*120;
+    starPops.push({
+      x,y,
+      vx: Math.cos(ang)*spd,
+      vy: Math.sin(ang)*spd,
+      age:0, life:0.55+Math.random()*0.35
+    });
+  }
+}
+function updateStarPops(dt){
+  for(let i=starPops.length-1;i>=0;i--){
+    const p=starPops[i];
+    p.age += dt;
+    p.x   += p.vx*dt;
+    p.y   += p.vy*dt;
+    p.vy  += 180*dt*0.4; // légère gravité
+    if(p.age>=p.life) starPops.splice(i,1);
+  }
+}
+function drawStarPops(){
+  if(!starPops.length) return;
+  ctx.save();
+  for(const p of starPops){
+    const a = 1 - (p.age/p.life);
+    ctx.globalAlpha = Math.max(0,a);
+    ctx.fillStyle = '#f3b46a';
+    ctx.beginPath(); ctx.arc(p.x,p.y, 2.2+1.8*(1-a), 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+/* ------------------------------------------------------------ */
+
 /* util: arrondi */
 function roundRect(ctx,x,y,w,h,r){
   const rr=Math.min(r,w/2,h/2);
@@ -367,6 +404,8 @@ function draw(ts){
       danceBird.scale+=(1.65-danceBird.scale)*0.05; danceSpider.scale+=(1.55-danceSpider.scale)*0.05;
       danceBird.angle=Math.sin(dancePhase)*0.25; danceSpider.angle=Math.sin(dancePhase+Math.PI/2)*0.20;
     }
+    // PATCH 2: update des star-pops
+    updateStarPops(frameDT);
   }
 
   /* Zone carte: sous UI_TOP, au-dessus D-pad */
@@ -427,6 +466,9 @@ function draw(ts){
     if(onTarget){
       collected.add(p.key); refreshStars();
       starEmphasis();
+      // PATCH 2: gerbe d’étoiles à la collecte
+      spawnStarPop(px, py-22);
+
       showTarantulaSuccess(p);
       currentIdx++;
       if(currentIdx===POIS.length){
@@ -449,7 +491,8 @@ function draw(ts){
     }
   }
 
-  // Feux + Danse
+  // Feux + Danse + PATCH 2: rendu des star-pops
+  drawStarPops();
   if(finale || fireworks.length>0){ drawFireworks(); }
   if(finale){
     drawDancer(birdImg,   danceBird.x,   danceBird.y,   bw*danceBird.scale,      danceBird.angle);
@@ -480,8 +523,6 @@ function beginFinale(bx,by,lastPx,lastPy){
 
   // stop musique de fond + lancer fanfare en boucle
   if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
-
-  // ⬇️ ajoute ceci
   musicOn = false;                     // le fond est considéré "arrêté"
   musicBtn.textContent = "🎵 Musique"; // bouton redevient "Musique"
 
