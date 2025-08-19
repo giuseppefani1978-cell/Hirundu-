@@ -25,27 +25,38 @@
   .card p{margin:6px 0 14px 0;opacity:.82}
   .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
 
-  /* ====== HUD colonne gauche (vertical) ====== */
-  .hud{
-    position:absolute;left:8px;top:50%;transform:translateY(-50%);
-    background:rgba(255,248,220,.96);border:2px solid #c8b37a;border-radius:10px;
-    padding:8px 10px;font-size:14px;z-index:22
-  }
-  .stars{display:flex;flex-direction:column;gap:4px;margin-top:6px}
-  .star{width:18px;height:18px;opacity:.95}
+ /* ===== HUD colonne gauche (verticale, forcée) ===== */
+.hud{
+  position:absolute !important;
+  left:8px !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  background:rgba(255,248,220,.96);
+  border:2px solid #c8b37a;
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:14px;
+  z-index:22;
+}
+.stars{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.star{width:18px;height:18px;opacity:.95}
 
-  /* ====== Bandeau Tarantula FIXE tout en haut ====== */
-  .tarTop{
-    position:absolute;left:50%;top:6px;transform:translateX(-50%);
-    display:none;align-items:flex-start;gap:8px;z-index:40;max-width:96vw
-  }
-  .tarTop.show{display:flex}
-  .tarTop img{width:64px;height:64px;object-fit:contain;background:transparent;border:none;border-radius:0;box-shadow:none}
-  .bdBubble{max-width:min(780px,92vw);background:#fff;border:1px solid #bbb;border-radius:14px;
-            padding:10px 12px;box-shadow:0 4px 10px rgba(0,0,0,.12);position:relative;font-size:14px;line-height:1.35}
-  .bdBubble:after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:-10px;border-width:10px;border-style:solid;border-color:transparent transparent #bbb transparent}
-  .bdBubble:before{content:"";position:absolute;left:50%;transform:translateX(-50%);top:-9px;border-width:9px;border-style:solid;border-color:transparent transparent #fff transparent}
-  .bdTitle{font-weight:700;margin-bottom:4px;text-align:center}
+/* ===== Bandeau Tarantula FIXE tout en haut (jamais sur la carte) ===== */
+.tarTop{
+  position:absolute !important;
+  left:50% !important;
+  top:6px !important;
+  transform:translateX(-50%) !important;
+  display:none;
+  align-items:flex-start;
+  gap:8px;
+  z-index:40;
+  max-width:96vw;
+}
+.tarTop.show{display:flex}
 
   /* ====== D-pad ====== */
   .touch{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:none;gap:14px;align-items:center;z-index:30}
@@ -211,7 +222,10 @@ let currentIdx = 0;
 
 /* Réserves UI: haut pour bandeau, bas pour D-pad */
 const UI_BOTTOM = 180;
-const UI_TOP    = 160;  // réserve pour la bulle en haut
+const UI_TOP    = 200;  // réserve pour la bulle en haut
+
+/* ===== Patch 1: Anti-étoile d'indice (désactive toute étoile avant collecte) ===== */
+const SHOW_HINT_STAR = false;
 
 /* =========================================================
    AUDIO (bg loop, success, fail, finale infinie)
@@ -385,18 +399,24 @@ function draw(ts){
   // Rideau doux finale
   if(finale){ ctx.fillStyle="rgba(0,0,0,0.22)"; ctx.fillRect(0,UI_TOP,W,H-UI_BOTTOM-UI_TOP); }
 
-  /* POI : X identiques si pas trouvés ; étoile si trouvé (aucune étoile “indice” avant) */
-  for(const p of POIS){
-    const x=ox+p.x*dw, y=oy+p.y*dh;
-    if(collected.has(p.key)){
-      drawStarfish(x, y-22, Math.max(16,Math.min(22,Math.min(W,H)*0.028)));
-    }else{
-      ctx.save(); ctx.strokeStyle='#b04123'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(x-6,y-6); ctx.lineTo(x+6,y+6);
-      ctx.moveTo(x-6,y+6); ctx.lineTo(x+6,y-6); ctx.stroke();
-      ctx.restore();
-    }
+/* POI : X identiques si pas trouvés ; étoile si trouvé (aucune étoile “indice” avant) */
+for (const p of POIS) {
+  const x = ox + p.x * dw, y = oy + p.y * dh;
+  if (collected.has(p.key)) {
+    // étoile uniquement APRÈS validation
+    drawStarfish(x, y - 22, Math.max(16, Math.min(22, Math.min(W, H) * 0.028)));
+  } else {
+    // X identiques pour tous les POI non validés
+    ctx.save();
+    ctx.strokeStyle = '#b04123';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6);
+    ctx.moveTo(x - 6, y + 6); ctx.lineTo(x + 6, y - 6);
+    ctx.stroke();
+    ctx.restore();
   }
+}
 
   /* Chemin progressif uniquement entre POI validés */
   if(!finale && collected.size>0){
