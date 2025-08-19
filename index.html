@@ -55,16 +55,21 @@
     transform:translateY(-12px) rotate(180deg);
   }
 
-  /* ===== HUD (vertical, étroit) ===== */
-  .hud{
-    background:rgba(255,248,220,.96);
-    border:2px solid #c8b37a;border-radius:10px;padding:8px 10px;
-    font-size:14px;
-  }
-  .hud h3{margin:0 0 4px 0;font-size:14px}
-  .score{font-weight:700;margin-bottom:6px}
-  .stars{display:flex;flex-direction:column;gap:3px}
-  .star{width:16px;height:16px;opacity:.95}
+ .hud {
+  display: flex;
+  flex-direction: column; /* stack children vertically */
+  align-items: center;    /* center horizontally if you want */
+}
+
+.hud h3 {
+  margin: 0;
+}
+
+.hud .score {
+  margin-top: 4px; /* small spacing below “Étoiles” */
+  font-weight: bold;
+}
+
 
   /* ===== D-pad (réduit) ===== */
   .touch{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:none;gap:10px;align-items:center;z-index:30}
