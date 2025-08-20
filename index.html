@@ -39,9 +39,10 @@
   .stars{display:flex;flex-direction:column;gap:4px;margin-top:2px;align-items:center}
   .star{width:15px;height:15px;opacity:.95}
 
-  /* ====== Bulle Tarantula — collée au HUD (haut-gauche) ====== */
+  /* ====== Bulle Tarantula — TOUT en haut à GAUCHE ====== */
   .tarTop{
-    position:absolute;display:none;align-items:flex-start;gap:8px;z-index:40;max-width:calc(100vw - 16px)
+    position:absolute;display:none;align-items:flex-start;gap:8px;z-index:40;max-width:calc(100vw - 16px);
+    left:8px; top:8px; /* ⬅️ collée à l’angle */
   }
   .tarTop.show{display:flex}
   .tarTop img{width:56px;height:56px;object-fit:contain;background:transparent;border:none;border-radius:0;box-shadow:none;image-rendering:pixelated}
@@ -86,7 +87,7 @@
        style="position:fixed;right:8px;bottom:8px;z-index:9999;
               background:rgba(0,0,0,.55);color:#fff;font:12px system-ui;
               padding:4px 6px;border-radius:6px;pointer-events:none">
-    v2025-08-20-c • host=<span id="__host__"></span>
+    v2025-08-20-d • host=<span id="__host__"></span>
   </div>
 
   <div class="wrap">
@@ -98,8 +99,8 @@
             <img id="heroAr" alt="Aracne">
             <img id="heroTa" alt="Tarantula">
           </div>
-          <h1>Le Vol d’Aracne</h1>
-          <p>Collecte les 10 étoiles et découvre 10 lieux secrets du Salento.</p>
+          <h1 id="titleH1">Le Vol d’Aracne</h1>
+          <p id="subtitleP">Collecte les 10 étoiles et découvre 10 lieux secrets du Salento.</p>
           <button id="startBtn" type="button" onclick="window.startGame && window.startGame()">Démarrer</button>
         </div>
       </div>
@@ -107,17 +108,17 @@
       <!-- ===== UI ===== -->
       <button id="musicBtn">🎵 Musique</button>
       <button id="replayFloat">⟲ Rejouer</button>
-      <div class="err" id="err" style="display:none"><b>⚠️ Problème d’assets</b><div id="errText"></div></div>
+      <div class="err" id="err" style="display:none"><b id="errTitle">⚠️ Problème d’assets</b><div id="errText"></div></div>
       <canvas id="c"></canvas>
 
       <!-- HUD colonne gauche (narrow) -->
       <div class="hud" id="hud">
-        <h3>Étoiles</h3>
+        <h3 id="hudLabel">Étoiles</h3>
         <div class="score" id="score">0/10</div>
         <div class="stars" id="stars"></div>
       </div>
 
-      <!-- Bulle Tarantula alignée au HUD -->
+      <!-- Bulle Tarantula (fixée en haut à gauche) -->
       <div class="tarTop" id="tarTop">
         <img id="tarAvatar" alt="Tarantula">
         <div class="bdBubble">
@@ -140,7 +141,7 @@
 
   <!-- ====== VERSION & CACHE-BUSTER ====== -->
   <script>
-    window.APP_VERSION = "v2025-08-20-c";
+    window.APP_VERSION = "v2025-08-20-d";
     window.APP_Q = "?v=" + window.APP_VERSION;
     (function(){ var s=document.getElementById("__host__"); if(s) s.textContent = location.hostname; console.log("[BUILD]", window.APP_VERSION, location.hostname); })();
   </script>
@@ -182,6 +183,95 @@
 
 <script>
 /* =========================================================
+   I18N — détection & libellés
+========================================================= */
+const I18N = {
+  fr: {
+    title: "Le Vol d’Aracne",
+    subtitle: "Collecte les 10 étoiles et découvre 10 lieux secrets du Salento.",
+    start: "Démarrer",
+    hudStars: "Étoiles",
+    musicOn: "⏹️ Musique",
+    musicOff: "🎵 Musique",
+    replay: "⟲ Rejouer",
+    ask: (info) => `Dis-moi, où est ${info} ?`,
+    success: (name) => `Bravo, c’est exactement ça : ${name} !`,
+    errTitle: "⚠️ Problème d’assets",
+    mapNotLoaded: (url)=>`Carte non chargée : ${url}`,
+    assetMissing: (who,url)=>`• ${who} introuvable : "${url}"`
+  },
+  it: {
+    title: "Il Volo di Aracne",
+    subtitle: "Raccogli le 10 stelle e scopri 10 luoghi segreti del Salento.",
+    start: "Avvia",
+    hudStars: "Stelle",
+    musicOn: "⏹️ Musica",
+    musicOff: "🎵 Musica",
+    replay: "⟲ Rigioca",
+    ask: (info) => `Dimmi, dov’è ${info}?`,
+    success: (name) => `Bravissimo, è proprio ${name}!`,
+    errTitle: "⚠️ Problema con le risorse",
+    mapNotLoaded: (url)=>`Mappa non caricata: ${url}`,
+    assetMissing: (who,url)=>`• ${who} non trovato: "${url}"`
+  },
+  es: {
+    title: "El Vuelo de Aracne",
+    subtitle: "Recoge las 10 estrellas y descubre 10 lugares secretos del Salento.",
+    start: "Empezar",
+    hudStars: "Estrellas",
+    musicOn: "⏹️ Música",
+    musicOff: "🎵 Música",
+    replay: "⟲ Repetir",
+    ask: (info) => `Dime, ¿dónde está ${info}?`,
+    success: (name) => `¡Bien hecho! Es exactamente: ${name}.`,
+    errTitle: "⚠️ Problema de recursos",
+    mapNotLoaded: (url)=>`Mapa no cargado: ${url}`,
+    assetMissing: (who,url)=>`• ${who} no encontrado: "${url}"`
+  },
+  en: {
+    title: "Aracne’s Flight",
+    subtitle: "Collect 10 stars and discover 10 secret places in Salento.",
+    start: "Start",
+    hudStars: "Stars",
+    musicOn: "⏹️ Music",
+    musicOff: "🎵 Music",
+    replay: "⟲ Replay",
+    ask: (info) => `Tell me, where is ${info}?`,
+    success: (name) => `Great, that’s exactly it: ${name}!`,
+    errTitle: "⚠️ Asset issue",
+    mapNotLoaded: (url)=>`Map not loaded: ${url}`,
+    assetMissing: (who,url)=>`• ${who} missing: "${url}"`
+  }
+};
+function pickLang(){
+  const raw=(navigator.language||navigator.userLanguage||"fr").toLowerCase();
+  if(raw.startsWith("fr")) return "fr";
+  if(raw.startsWith("it")) return "it";
+  if(raw.startsWith("es")) return "es";
+  if(raw.startsWith("en")) return "en";
+  // fallback par région
+  if(["be","ch","ca","lu","mc"].some(cc=>raw.endsWith("-"+cc))) return "fr";
+  if(["us","gb","au","nz","ie"].some(cc=>raw.endsWith("-"+cc))) return "en";
+  return "en";
+}
+const LANG = pickLang();
+const t = I18N[LANG];
+
+/* Applique les libellés statiques */
+(function applyI18N(){
+  document.documentElement.lang = LANG;
+  document.title = t.title + " — Salento";
+  const $ = (id)=>document.getElementById(id);
+  $("titleH1").textContent = t.title;
+  $("subtitleP").textContent = t.subtitle;
+  $("startBtn").textContent = t.start;
+  $("hudLabel").textContent = t.hudStars;
+  $("musicBtn").textContent = t.musicOff;
+  $("replayFloat").textContent = t.replay;
+  $("errTitle").textContent = t.errTitle;
+})();
+
+/* =========================================================
    BOOT / REPLAY
 ========================================================= */
 window.startGame = function(){
@@ -194,7 +284,7 @@ window.startGame = function(){
     if (typeof resize === 'function') resize();
     window.running = true;
     requestAnimationFrame(loop);
-  }catch(e){ alert('Erreur au démarrage: '+e.message); }
+  }catch(e){ alert('Start error: '+e.message); }
 };
 document.getElementById('replayFloat').addEventListener('click', ()=>{ resetGame(true); window.startGame(); });
 
@@ -207,7 +297,7 @@ window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message
    ASSETS
 ========================================================= */
 const MAP_URL       = "assets/salento-map.jpeg" + (window.APP_Q || "");
-const BIRD_URL      = "assets/aracne .PNG"      + (window.APP_Q || "");    // (chemin conservé tel quel)
+const BIRD_URL      = "assets/aracne .PNG"      + (window.APP_Q || "");
 const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");
 
 /* ===== Canvas & UI refs ===== */
@@ -232,28 +322,26 @@ tarAvatar.src   = TARANTULA_URL;
 document.getElementById('heroAr').src = BIRD_URL;
 document.getElementById('heroTa').src = TARANTULA_URL;
 
-/* Resize (n’appelle positionTarBubble que si les refs existent) */
+/* Resize (tarTop est désormais fixé en haut-gauche, plus d’alignement HUD) */
 let W=0,H=0,dpr=1;
 function resize(){
   dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
   W=canvas.clientWidth=canvas.parentElement.clientWidth;
   H=canvas.clientHeight=canvas.parentElement.clientHeight;
   canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-  if (typeof positionTarBubble === 'function' && hudEl && tarTop) { positionTarBubble(); }
 }
-/* ⚠️ Appel APRES les UI refs */
 resize(); addEventListener('resize', resize);
 
 /* Images */
 const mapImg=new Image(), birdImg=new Image(), spiderImg=new Image();
 mapImg.onload=()=>{ drawSplash(); };
-mapImg.onerror=()=>assetFail('Carte', MAP_URL, true);
+mapImg.onerror=()=>assetFail('Carte/Map', MAP_URL, true);
 birdImg.onerror=()=>assetFail('Aracne', BIRD_URL);
 spiderImg.onerror=()=>assetFail('Tarantula', TARANTULA_URL);
 mapImg.src=MAP_URL; birdImg.src=BIRD_URL; spiderImg.src=TARANTULA_URL;
 function assetFail(who,url,showPlaceholder){
   errBox.style.display='block';
-  errText.innerHTML += (errText.innerHTML? "<br>":"") + `• ${who} introuvable : "${url}"`;
+  errText.innerHTML += (errText.innerHTML? "<br>":"") + t.assetMissing(who,url);
   if(showPlaceholder) drawSplash(true);
 }
 
@@ -263,7 +351,6 @@ function assetFail(who,url,showPlaceholder){
 const SHIFT_COAST = { x:0.045, y:0.026 };
 const SHIFT_EAST  = 0.04;
 
-/* Ajustements demandés: Cesarea, Castro, Ciolo → +x, +y ; Leuca → +x notable */
 const POIS = [
   { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+SHIFT_EAST+SHIFT_COAST.x,          y:0.52+SHIFT_COAST.y,          info:"la cathédrale aux mosaïques médiévales et la chapelle des 800 martyrs" },
   { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+SHIFT_EAST+SHIFT_COAST.x,          y:0.56+SHIFT_COAST.y,          info:"la grande calanque aux eaux turquoises entourée de falaises" },
@@ -306,7 +393,7 @@ async function startMusic(){
     createAudioOnce();
     if (audioCtx.state==='suspended') await audioCtx.resume();
     ping(720,0.20);
-    musicOn=true; musicBtn.textContent="⏹️ Musique";
+    musicOn=true; musicBtn.textContent=t.musicOn;
     playPhrase();
   }catch(e){}
 }
@@ -314,7 +401,7 @@ function stopMusic(){
   musicOn=false;
   if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
   if(audioCtx && audioCtx.state!=="closed"){ audioCtx.suspend(); }
-  musicBtn.textContent="🎵 Musique";
+  musicBtn.textContent=t.musicOff;
 }
 function toggleMusic(){ musicOn?stopMusic():startMusic(); }
 musicBtn.addEventListener('click', toggleMusic);
@@ -388,25 +475,12 @@ function triggerFireworksShow(){
 ========================================================= */
 function asQuestionFromInfo(info){
   const s=((info||"ce lieu")+"").trim();
-  return `Dis-moi, où est ${s} ?`;
-}
-function positionTarBubble(){
-  const hud = hudEl;
-  if(!hud || !tarTop) return;
-  const r = hud.getBoundingClientRect();
-  tarTop.style.left = (r.left + r.width + 8) + 'px';
-  tarTop.style.top  = '8px';
+  return t.ask(s);
 }
 function askQuestionFor(p){
   if(!p){ return; }
   bdTitle.textContent="Tarantula";
   bdText.textContent=asQuestionFromInfo(p.info);
-  tarTop.classList.add('show');
-  positionTarBubble();
-}
-function showTarantulaSuccess(p){
-  bdTitle.textContent="Tarantula";
-  bdText.textContent=`Bravo, c’est exactement ça : ${p.name.split(" — ")[0]} !`;
   tarTop.classList.add('show');
 }
 
@@ -438,14 +512,13 @@ function refreshStars(){
 refreshStars();
 
 function drawLabels(dt){
-  // vie en secondes, fade out progressif
   for(let i=floatingLabels.length-1;i>=0;i--){
     const L=floatingLabels[i];
     L.age += dt;
-    const t = L.age / L.life; // 0..1
-    if(t>=1){ floatingLabels.splice(i,1); continue; }
-    const alpha = 1 - t;
-    const lift = 10 * t; // légère montée
+    const tprog = L.age / L.life;
+    if(tprog>=1){ floatingLabels.splice(i,1); continue; }
+    const alpha = 1 - tprog;
+    const lift = 10 * tprog;
     ctx.save();
     ctx.globalAlpha = Math.max(0,alpha);
     ctx.fillStyle = "#0e2b4a";
@@ -483,9 +556,9 @@ function draw(ts){
 
   ctx.clearRect(0,0,W,H);
 
-  // Carte
+  // Carte / Map
   if (mapImg.complete && mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
-  else { ctx.fillStyle="#bfe2f8"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#0e2b4a"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, ox+14, oy+24); }
+  else { ctx.fillStyle="#bfe2f8"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#0e2b4a"; ctx.font="16px system-ui"; ctx.fillText(t.mapNotLoaded(MAP_URL), ox+14, oy+24); }
 
   if(finale){ ctx.fillStyle="rgba(0,0,0,0.22)"; ctx.fillRect(0,UI_TOP,W,H-UI_BOTTOM-UI_TOP); }
 
@@ -502,8 +575,8 @@ function draw(ts){
     }
   }
 
-  // Chemin
-  if(!finale && collected.size>0){
+  // Chemin — n’apparaît qu’à partir de 2 découvertes
+  if(!finale && collected.size >= 2){
     ctx.save(); ctx.strokeStyle="#7a4c25"; ctx.lineWidth=4; ctx.lineCap="round"; ctx.lineJoin="round";
     ctx.beginPath();
     for(let i=0;i<collected.size;i++){
@@ -530,25 +603,29 @@ function draw(ts){
     const onTarget = Math.hypot(bx-px,by-py)<44;
 
     if(onTarget && !inputLocked){
-      inputLocked = true;                   // ⬅️ bloque le déplacement ~2 s
+      inputLocked = true;
       collected.add(p.key); refreshStars();
       starEmphasis();
-      showTarantulaSuccess(p);
+
+      // Message succès localisé
+      const nameShort = (p.name.split(" — ")[0]);
+      bdTitle.textContent="Tarantula";
+      bdText.textContent = t.success(nameShort);
+      tarTop.classList.add('show');
 
       // Label éphémère
-      floatingLabels.push({ text: p.name.split(" — ")[0], x:px, y:py-22, age:0, life:2.0 });
+      floatingLabels.push({ text: nameShort, x:px, y:py-22, age:0, life:2.0 });
 
       currentIdx++;
 
       if(currentIdx===POIS.length){
-        // petite latence puis finale
         setTimeout(()=>{
           beginFinale(bx,by, ox+POIS[POIS.length-1].x*dw, oy+POIS[POIS.length-1].y*dh);
           replayBtn.style.display='inline-block';
           inputLocked = false;
         }, 1200);
       }else{
-        // attend 2s avant la prochaine question
+        // attend 2s puis pose la prochaine question (localisée)
         setTimeout(()=>{
           askQuestionFor(POIS[currentIdx]);
           inputLocked = false;
@@ -598,7 +675,7 @@ function beginFinale(bx,by,lastPx,lastPy){
 
   if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
   musicOn = false;
-  musicBtn.textContent = "🎵 Musique";
+  musicBtn.textContent = t.musicOff;
 
   playFinaleLong();
   triggerFireworksShow();
@@ -648,7 +725,7 @@ function drawSplash(force){
     ctx.drawImage(mapImg,ox,oy,dw,dh);
   } else if (force){
     ctx.fillStyle="#bfe2f8"; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle="#0e2b4a"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, 14, 28);
+    ctx.fillStyle="#0e2b4a"; ctx.font="16px system-ui"; ctx.fillText(t.mapNotLoaded(MAP_URL), 14, 28);
   }
 }
 
