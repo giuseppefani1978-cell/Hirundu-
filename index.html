@@ -29,10 +29,10 @@
 
   /* ====== HUD — plus étroit (≈ moitié) ====== */
   .hud{
-    position:absolute;left:8px;top:50%;transform:translateY(-50%);
-    background:rgba(255,248,220,.96);border:2px solid #c8b37a;border-radius:10px;
-    padding:8px 6px;font-size:14px;z-index:22;width:84px;
-    display:flex;flex-direction:column;align-items:center;gap:6px
+  position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  background:rgba(255,248,220,.96);border:2px solid #c8b37a;border-radius:10px;
+  padding:8px 6px;font-size:14px;z-index:22;width:42px;
+  display:flex;flex-direction:column;align-items:center;gap:6px
   }
   .hud h3{margin:0;font-size:14px;line-height:1}
   .hud .score{margin:0;font-weight:800;font-size:13px;line-height:1.1}
@@ -575,19 +575,32 @@ function draw(ts){
     }
   }
 
-  // Chemin — n’apparaît qu’à partir de 2 découvertes
-  if(!finale && collected.size >= 2){
-    ctx.save(); ctx.strokeStyle="#7a4c25"; ctx.lineWidth=4; ctx.lineCap="round"; ctx.lineJoin="round";
-    ctx.beginPath();
-    for(let i=0;i<collected.size;i++){
-      const a=POIS[i], b=POIS[i+1]; if(!b) break;
-      const ax=ox+a.x*dw, ay=oy+a.y*dh, bx=ox+b.x*dw, by=oy+b.y*dh;
-      const mx=(ax+bx)/2, my=(ay+by)/2 + ((i%2?1:-1)*8);
-      if(i===0) ctx.moveTo(ax,ay);
-      ctx.quadraticCurveTo(mx,my,bx,by);
-    }
-    ctx.stroke(); ctx.restore();
+  // Chemin — uniquement entre POI déjà découverts (>=2), pas avant
+if (!finale && collected.size >= 2) {
+  ctx.save();
+  ctx.strokeStyle = "#7a4c25";
+  ctx.lineWidth = 4;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+
+  let started = false;
+  for (let i = 0; i < POIS.length - 1; i++) {
+    const a = POIS[i], b = POIS[i + 1];
+    // on ne trace que si A et B sont déjà découverts
+    if (!collected.has(a.key) || !collected.has(b.key)) continue;
+
+    const ax = ox + a.x * dw, ay = oy + a.y * dh;
+    const bx = ox + b.x * dw, by = oy + b.y * dh;
+    const mx = (ax + bx) / 2, my = (ay + by) / 2 + ((i % 2 ? 1 : -1) * 8);
+
+    if (!started) { ctx.moveTo(ax, ay); started = true; }
+    ctx.quadraticCurveTo(mx, my, bx, by);
   }
+
+  if (started) ctx.stroke();
+  ctx.restore();
+}
 
   // Aracne
   const bw=Math.min(160,Math.max(90,dw*player.size));
