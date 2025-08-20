@@ -3,26 +3,28 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Salento — Aracne & Tarantula (Chasse au trésor)</title>
+<title>Le Vol d’Aracne — Aracne & Tarantula (Chasse au trésor)</title>
 <style>
   /* ====== Base & Canvas ====== */
-  html,body{height:100%;margin:0;background:#f6f1e1;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  html,body{height:100%;margin:0;background:#9ed3ea;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
   *{-webkit-tap-highlight-color:transparent}
   .wrap{display:flex;flex-direction:column;height:100%}
   .game{position:relative;flex:1;overflow:hidden}
-  canvas{width:100%;height:100%;display:block;background:#e2eef7;touch-action:none}
+  canvas{width:100%;height:100%;display:block;background:#9ed3ea;touch-action:none}
 
   /* ====== Overlay (Start) ====== */
   .overlay{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    background:rgba(246,241,225,.84);backdrop-filter:blur(3px);z-index:50
+    background:rgba(158,211,234,.84);backdrop-filter:blur(3px);z-index:50
   }
   .card{
-    width:min(560px,92vw);border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;
-    box-shadow:0 10px 26px rgba(0,0,0,.18);padding:18px;text-align:center
+    width:min(620px,92vw);border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;
+    box-shadow:0 10px 26px rgba(0,0,0,.18);padding:20px 18px;text-align:center
   }
-  .card h1{margin:0 0 6px 0;font-size:22px}
-  .card p{margin:6px 0 14px 0;opacity:.82}
+  .card h1{margin:0 0 8px 0;font-size:28px;letter-spacing:.5px}
+  .card p{margin:6px 0 14px 0;opacity:.86}
+  .card .heroRow{display:flex;gap:12px;justify-content:center;align-items:center;margin:8px 0 14px}
+  .card .heroRow img{width:64px;height:64px;object-fit:contain}
   .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
 
   /* ====== HUD — plus étroit (≈ moitié) ====== */
@@ -37,7 +39,7 @@
   .stars{display:flex;flex-direction:column;gap:4px;margin-top:2px;align-items:center}
   .star{width:15px;height:15px;opacity:.95}
 
-  /* ====== Bulle Tarantula — collée au HUD (haut-gauche) ====== */
+  /* ====== Bulle Tarantula — fine, jamais sur le HUD ====== */
   .tarTop{
     position:absolute;display:none;align-items:flex-start;gap:8px;z-index:40;max-width:calc(100vw - 16px)
   }
@@ -45,11 +47,11 @@
   .tarTop img{width:56px;height:56px;object-fit:contain;background:transparent;border:none;border-radius:0;box-shadow:none}
   .bdBubble{
     max-width:min(860px,92vw);
-    background:#fff;border:1px solid #bbb;border-radius:12px;
-    padding:8px 10px;box-shadow:0 4px 10px rgba(0,0,0,.12);
-    font-size:14px;line-height:1.35
+    background:#fff;border:1px solid #bbb;border-radius:10px;
+    padding:6px 9px;box-shadow:0 4px 10px rgba(0,0,0,.12);
+    font-size:13.5px;line-height:1.28
   }
-  .bdTitle{font-weight:700;margin:0 0 4px 0}
+  .bdTitle{font-weight:700;margin:0 0 3px 0;font-size:13.5px}
   .bdBubble p{margin:0}
 
   /* ====== D-pad (compact) ====== */
@@ -71,6 +73,13 @@
     box-shadow:0 6px 14px rgba(0,0,0,.15)
   }
 
+  /* ====== Label éphémère ====== */
+  .poiLabel{
+    position:absolute;transform:translate(-50%,-120%);
+    background:rgba(255,255,255,.96);border:1px solid #b7b7b7;border-radius:8px;padding:4px 6px;
+    font:12px/1.2 system-ui;white-space:nowrap;pointer-events:none;z-index:35;box-shadow:0 2px 6px rgba(0,0,0,.15)
+  }
+
   /* ====== Erreurs / Debug ====== */
   .err{position:absolute;right:10px;top:10px;background:#ffefef;border:2px solid #d66;border-radius:10px;padding:8px 10px;font-size:12px;color:#900;z-index:60;max-width:min(320px,60vw)}
   .err b{display:block;margin-bottom:4px}
@@ -84,7 +93,7 @@
        style="position:fixed;right:8px;bottom:8px;z-index:9999;
               background:rgba(0,0,0,.55);color:#fff;font:12px system-ui;
               padding:4px 6px;border-radius:6px;pointer-events:none">
-    v2025-08-20-b • host=<span id="__host__"></span>
+    v2025-08-20-c • host=<span id="__host__"></span>
   </div>
 
   <div class="wrap">
@@ -92,8 +101,12 @@
       <!-- ===== Overlay Start ===== -->
       <div class="overlay" id="overlay">
         <div class="card" id="overlayCard">
-          <h1>Salento — Aracne & Tarantula</h1>
-          <p>Collecte les 10 étoiles et découvre les lieux secrets.</p>
+          <div class="heroRow">
+            <img id="ovAracne" alt="Aracne">
+            <img id="ovTarantula" alt="Tarantula">
+          </div>
+          <h1>Le Vol d’Aracne</h1>
+          <p>Collecte les 10 étoiles et découvre les lieux secrets du Salento.</p>
           <button id="startBtn" type="button" onclick="window.startGame && window.startGame()">Démarrer</button>
         </div>
       </div>
@@ -119,22 +132,13 @@
           <p id="bdText"></p>
         </div>
       </div>
-
-      <!-- D-pad tactile -->
-      <div class="touch" id="touch">
-        <div class="dpad">
-          <div></div> <div class="btn" data-dx="0" data-dy="-1">↑</div> <div></div>
-          <div class="btn" data-dx="-1" data-dy="0">←</div> <div></div> <div class="btn" data-dx="1" data-dy="0">→</div>
-          <div></div> <div class="btn" data-dx="0" data-dy="1">↓</div> <div></div>
-        </div>
-      </div>
     </div>
   </div>
   <div id="debugBox"></div>
 
   <!-- ====== VERSION & CACHE-BUSTER ====== -->
   <script>
-    window.APP_VERSION = "v2025-08-20-b";
+    window.APP_VERSION = "v2025-08-20-c";
     window.APP_Q = "?v=" + window.APP_VERSION;
     (function(){ var s=document.getElementById("__host__"); if(s) s.textContent = location.hostname; console.log("[BUILD]", window.APP_VERSION, location.hostname); })();
   </script>
@@ -168,7 +172,7 @@
       if (!btn) return;
       btn.addEventListener('click', function(){
         var url = new URL(location.href);
-        url.searchParams.set('t', Date.now());  // force un GET neuf
+        url.searchParams.set('t', Date.now());
         location.replace(url.toString());
       });
     })();
@@ -181,10 +185,10 @@
 window.startGame = function(){
   try{
     document.getElementById('overlay').style.display = 'none';
-    document.getElementById('touch').classList.add('show');
+    document.getElementById('touch')?.classList.add('show');  // (touch caché si non voulu)
     document.getElementById('musicBtn').style.display = 'inline-block';
     resetGame(false);
-    if (typeof startMusic === 'function') startMusic(); // iOS: geste utilisateur
+    if (typeof startMusic === 'function') startMusic();
     if (typeof resize === 'function') resize();
     window.running = true;
     requestAnimationFrame(loop);
@@ -209,7 +213,7 @@ const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 
 /* UI refs — DÉFINIS AVANT tout appel à resize() */
-const touch     = document.getElementById('touch');
+const touch     = document.getElementById('touch');   // (peut être null si tu l’as retiré)
 const scoreEl   = document.getElementById('score');
 const starsEl   = document.getElementById('stars');
 const tarTop    = document.getElementById('tarTop');
@@ -221,9 +225,13 @@ const errText   = document.getElementById('errText');
 const musicBtn  = document.getElementById('musicBtn');
 const replayBtn = document.getElementById('replayFloat');
 const hudEl     = document.getElementById('hud');
+const ovAracne  = document.getElementById('ovAracne');
+const ovTarantula = document.getElementById('ovTarantula');
 tarAvatar.src   = TARANTULA_URL;
+if (ovAracne) ovAracne.src = BIRD_URL;
+if (ovTarantula) ovTarantula.src = TARANTULA_URL;
 
-/* Resize (n’appelle positionTarBubble que si les refs existent) */
+/* Resize */
 let W=0,H=0,dpr=1;
 function resize(){
   dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -232,7 +240,6 @@ function resize(){
   canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
   if (typeof positionTarBubble === 'function' && hudEl && tarTop) { positionTarBubble(); }
 }
-/* ⚠️ Appel APRES les UI refs */
 resize(); addEventListener('resize', resize);
 
 /* Images */
@@ -253,14 +260,21 @@ function assetFail(who,url,showPlaceholder){
 ========================================================= */
 const SHIFT_COAST = { x:0.045, y:0.026 };
 const SHIFT_EAST  = 0.04;
+/* Ajustements fins demandés */
+const ADJ = {
+  santacesarea: {dx:+0.012, dy:+0.006},
+  castro:       {dx:+0.012, dy:+0.006},
+  ciolo:        {dx:+0.012, dy:+0.008},
+  leuca:        {dx:+0.050, dy:+0.000}  // bien sur la pointe
+};
 
 const POIS = [
   { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+SHIFT_EAST+SHIFT_COAST.x, y:0.52+SHIFT_COAST.y, info:"la cathédrale aux mosaïques médiévales et la chapelle des 800 martyrs" },
   { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+SHIFT_EAST+SHIFT_COAST.x, y:0.56+SHIFT_COAST.y, info:"la grande calanque aux eaux turquoises entourée de falaises" },
-  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74+SHIFT_EAST+SHIFT_COAST.x, y:0.60+SHIFT_COAST.y, info:"les thermes soufrés et la Villa Sticchi en bord de mer" },
-  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70+SHIFT_EAST+SHIFT_COAST.x, y:0.65+SHIFT_COAST.y, info:"la grotte Zinzulusa et le souvenir du temple d’Athéna" },
-  { key:"ciolo",         name:"Il Ciolo",                      x:0.64+SHIFT_EAST+SHIFT_COAST.x, y:0.75+SHIFT_COAST.y, info:"le petit fjord avec le grand pont routier" },
-  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60+SHIFT_COAST.x,             y:0.88+SHIFT_COAST.y, info:"le phare très haut et la cascade monumentale du Finibus Terrae" },
+  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74+SHIFT_EAST+SHIFT_COAST.x + (ADJ.santacesarea.dx||0), y:0.60+SHIFT_COAST.y + (ADJ.santacesarea.dy||0), info:"les thermes soufrés et la Villa Sticchi en bord de mer" },
+  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.70+SHIFT_EAST+SHIFT_COAST.x + (ADJ.castro.dx||0),       y:0.65+SHIFT_COAST.y + (ADJ.castro.dy||0),       info:"la grotte Zinzulusa et le souvenir du temple d’Athéna" },
+  { key:"ciolo",         name:"Il Ciolo",                      x:0.64+SHIFT_EAST+SHIFT_COAST.x + (ADJ.ciolo.dx||0),        y:0.75+SHIFT_COAST.y + (ADJ.ciolo.dy||0),        info:"le petit fjord avec le grand pont routier" },
+  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.60+SHIFT_COAST.x             + (ADJ.leuca.dx||0),        y:0.88+SHIFT_COAST.y + (ADJ.leuca.dy||0),        info:"le phare très haut et la cascade monumentale du Finibus Terrae" },
   { key:"gallipoli",     name:"Gallipoli",                     x:0.35, y:0.62, info:"la vieille ville bâtie sur un îlot relié par un pont" },
   { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22, y:0.46, info:"les plages claires et la réserve marine" },
   { key:"nardo",         name:"Nardò",                         x:0.28, y:0.50, info:"le centre baroque et Porto Selvaggio tout proche" },
@@ -274,6 +288,12 @@ let currentIdx = 0;
 /* Réserves UI */
 const UI_BOTTOM = 160;
 const UI_TOP    = 120;
+
+/* Labels éphémères (DOM) */
+const labelPool = []; // {el, tEnd}
+
+/* Entrées verrouillées après succès ? */
+let inputLocked = false;
 
 /* =========================================================
    AUDIO (bg loop, success, fail, finale infinie)
@@ -378,7 +398,7 @@ function positionTarBubble(){
   const hud = hudEl;
   if(!hud || !tarTop) return;
   const r = hud.getBoundingClientRect();
-  tarTop.style.left = (r.left + r.width + 8) + 'px';
+  tarTop.style.left = Math.max(8, r.left + r.width + 8) + 'px';  // jamais au-dessus du HUD
   tarTop.style.top  = '8px';
 }
 function askQuestionFor(p){
@@ -420,6 +440,19 @@ function refreshStars(){
 }
 refreshStars();
 
+/* Petits labels DOM */
+function addPoiLabel(text, xPx, yPx){
+  const el = document.createElement('div');
+  el.className = 'poiLabel';
+  el.textContent = text;
+  el.style.left = Math.round(xPx) + 'px';
+  el.style.top  = Math.round(yPx) + 'px';
+  document.querySelector('.game').appendChild(el);
+  const tEnd = performance.now() + 1800; // 1.8s
+  labelPool.push({el,tEnd});
+}
+
+/* Dessin + logique */
 function draw(ts){
   if(ts){
     if(!lastTS) lastTS=ts;
@@ -446,7 +479,7 @@ function draw(ts){
   ctx.clearRect(0,0,W,H);
 
   if (mapImg.complete && mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
-  else { ctx.fillStyle="#d9e6f2"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, ox+14, oy+24); }
+  else { ctx.fillStyle="#9ed3ea"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, ox+14, oy+24); }
 
   if(finale){ ctx.fillStyle="rgba(0,0,0,0.22)"; ctx.fillRect(0,UI_TOP,W,H-UI_BOTTOM-UI_TOP); }
 
@@ -487,16 +520,26 @@ function draw(ts){
     const onTarget = Math.hypot(bx-px,by-py)<44;
 
     if(onTarget){
+      inputLocked = true;
       collected.add(p.key); refreshStars();
       starEmphasis();
       showTarantulaSuccess(p);
-      currentIdx++;
-      if(currentIdx===POIS.length){
-        beginFinale(bx,by, ox+POIS[POIS.length-1].x*dw, oy+POIS[POIS.length-1].y*dh);
-        replayBtn.style.display='inline-block';
-      }else{
-        askQuestionFor(POIS[currentIdx]);
-      }
+
+      // petit label éphémère
+      addPoiLabel(p.name.split(" — ")[0], px, py-20);
+
+      // enchaîne après ~1.8s
+      setTimeout(()=>{
+        currentIdx++;
+        if(currentIdx===POIS.length){
+          beginFinale(bx,by, ox+POIS[POIS.length-1].x*dw, oy+POIS[POIS.length-1].y*dh);
+          replayBtn.style.display='inline-block';
+        }else{
+          askQuestionFor(POIS[currentIdx]);
+        }
+        inputLocked = false;
+      }, 1800);
+
     }else{
       const now = performance.now();
       if(now - lastFailAt > FAIL_COOLDOWN){
@@ -510,10 +553,22 @@ function draw(ts){
     }
   }
 
+  // Feux + Danse
   if(finale || fireworks.length>0){ drawFireworks(); }
   if(finale){
     drawDancer(birdImg,   danceBird.x,   danceBird.y,   bw*danceBird.scale,      danceBird.angle);
     drawDancer(spiderImg, danceSpider.x, danceSpider.y, bw*danceSpider.scale*0.9, danceSpider.angle);
+  }
+
+  // Nettoie labels expirés
+  if(labelPool.length){
+    const now = performance.now();
+    for(let i=labelPool.length-1;i>=0;i--){
+      if(now >= labelPool[i].tEnd){
+        labelPool[i].el.remove();
+        labelPool.splice(i,1);
+      }
+    }
   }
 }
 
@@ -531,7 +586,7 @@ function loop(ts){ if(!window.running) return; draw(ts); requestAnimationFrame(l
 ========================================================= */
 function beginFinale(bx,by,lastPx,lastPy){
   finale=true;
-  touch.classList.remove('show');
+  touch?.classList.remove('show');
   tarTop.classList.add('show');
 
   danceBird.x=bx; danceBird.y=by; danceSpider.x=lastPx; danceSpider.y=lastPy;
@@ -552,9 +607,11 @@ function resetGame(hideOverlay){
   replayBtn.style.display='none';
   collected.clear(); currentIdx=0; refreshStars();
   player.x=0.55; player.y=0.25;
+  labelPool.splice(0).forEach(l=>l.el.remove());
   askQuestionFor(POIS[currentIdx]);
   if(musicOn){ if(loopTimer){ clearTimeout(loopTimer); } playPhrase(); }
   if(hideOverlay){ const ov=document.getElementById('overlay'); ov.style.display='none'; }
+  inputLocked=false;
 }
 
 /* =========================================================
@@ -563,7 +620,7 @@ function resetGame(hideOverlay){
 for(const el of document.querySelectorAll('.btn')){
   const dx=parseFloat(el.dataset.dx), dy=parseFloat(el.dataset.dy);
   let press=false, id=null;
-  const step=()=>{ if(!press || finale) return;
+  const step=()=>{ if(!press || finale || inputLocked) return;
     player.x=Math.max(0,Math.min(1,player.x+dx*player.speed));
     player.y=Math.max(0,Math.min(1,player.y+dy*player.speed));
     id=requestAnimationFrame(step);
@@ -571,9 +628,10 @@ for(const el of document.querySelectorAll('.btn')){
   el.addEventListener('touchstart',e=>{press=true;step();e.preventDefault();},{passive:false});
   el.addEventListener('touchend',()=>{press=false;cancelAnimationFrame(id);});
 }
+/* Drag direct */
 let dragging=false;
 canvas.addEventListener('touchstart',e=>{
-  if(finale) return;
+  if(finale || inputLocked) return;
   const t=e.touches[0];
   const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
   const availW=W, availH=Math.max(200, H-UI_BOTTOM-UI_TOP);
@@ -584,7 +642,7 @@ canvas.addEventListener('touchstart',e=>{
   if(Math.hypot(t.clientX-bx,t.clientY-by)<Math.min(W,H)*player.size*0.6){dragging=true; e.preventDefault();}
 },{passive:false});
 canvas.addEventListener('touchmove',e=>{
-  if(!dragging||finale) return; const t=e.touches[0];
+  if(!dragging||finale||inputLocked) return; const t=e.touches[0];
   const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
   const availW=W, availH=Math.max(200, H-UI_BOTTOM-UI_TOP);
   let scale=Math.min(availW/mw, availH/mh)*1.10; scale=Math.min(scale, Math.min(availW/mw, availH/mh));
@@ -612,7 +670,7 @@ function drawSplash(force){
     const ox=(W-dw)/2, oy=UI_TOP + Math.max(0,(availH-dh)/2);
     ctx.drawImage(mapImg,ox,oy,dw,dh);
   } else if (force){
-    ctx.fillStyle="#d9e6f2"; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#9ed3ea"; ctx.fillRect(0,0,W,H);
     ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, 14, 28);
   }
 }
