@@ -530,7 +530,8 @@ function drawLabels(dt){
     ctx.restore();
   }
 }
-
+/* ====== Zoom global de la carte ====== */
+const MAP_ZOOM = 1.30; // ≈ +30%
 function draw(ts){
   if(ts){
     if(!lastTS) lastTS=ts;
@@ -549,10 +550,16 @@ function draw(ts){
 
   const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
   const availW=W, availH=Math.max(200, H-UI_BOTTOM-UI_TOP);
-  let scale=Math.min(availW/mw, availH/mh) * 1.10;
-  scale=Math.min(scale, Math.min(availW/mw, availH/mh));
+
+  // === NOUVEAU: zoom global sans re-clamp ===
+  const baseScale = Math.min(availW/mw, availH/mh);
+  const scale = baseScale * MAP_ZOOM;
+
   const dw=mw*scale, dh=mh*scale;
-  const ox=(W-dw)/2, oy=UI_TOP + Math.max(0,(availH-dh)/2);
+
+  // === NOUVEAU: centrage vertical même si la carte dépasse ===
+  const ox=(W-dw)/2;
+  const oy=UI_TOP + (availH - dh)/2;
 
   ctx.clearRect(0,0,W,H);
 
@@ -576,31 +583,31 @@ function draw(ts){
   }
 
   // Chemin — uniquement entre POI déjà découverts (>=2), pas avant
-if (!finale && collected.size >= 2) {
-  ctx.save();
-  ctx.strokeStyle = "#7a4c25";
-  ctx.lineWidth = 4;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.beginPath();
+  if (!finale && collected.size >= 2) {
+    ctx.save();
+    ctx.strokeStyle = "#7a4c25";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
 
-  let started = false;
-  for (let i = 0; i < POIS.length - 1; i++) {
-    const a = POIS[i], b = POIS[i + 1];
-    // on ne trace que si A et B sont déjà découverts
-    if (!collected.has(a.key) || !collected.has(b.key)) continue;
+    let started = false;
+    for (let i = 0; i < POIS.length - 1; i++) {
+      const a = POIS[i], b = POIS[i + 1];
+      // on ne trace que si A et B sont déjà découverts
+      if (!collected.has(a.key) || !collected.has(b.key)) continue;
 
-    const ax = ox + a.x * dw, ay = oy + a.y * dh;
-    const bx = ox + b.x * dw, by = oy + b.y * dh;
-    const mx = (ax + bx) / 2, my = (ay + by) / 2 + ((i % 2 ? 1 : -1) * 8);
+      const ax = ox + a.x * dw, ay = oy + a.y * dh;
+      const bx = ox + b.x * dw, by = oy + b.y * dh;
+      const mx = (ax + bx) / 2, my = (ay + by) / 2 + ((i % 2 ? 1 : -1) * 8);
 
-    if (!started) { ctx.moveTo(ax, ay); started = true; }
-    ctx.quadraticCurveTo(mx, my, bx, by);
+      if (!started) { ctx.moveTo(ax, ay); started = true; }
+      ctx.quadraticCurveTo(mx, my, bx, by);
+    }
+
+    if (started) ctx.stroke();
+    ctx.restore();
   }
-
-  if (started) ctx.stroke();
-  ctx.restore();
-}
 
   // Aracne
   const bw=Math.min(160,Math.max(90,dw*player.size));
@@ -665,7 +672,6 @@ if (!finale && collected.size >= 2) {
     drawDancer(spiderImg, danceSpider.x, danceSpider.y, bw*danceSpider.scale*0.9, danceSpider.angle);
   }
 }
-
 function drawDancer(img, cx, cy, size, angle){
   ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
   if(img.complete && img.naturalWidth) ctx.drawImage(img, -size/2, -size/2, size, size);
@@ -732,13 +738,18 @@ function drawSplash(force){
   if (mapImg.complete && mapImg.naturalWidth){
     const mw=mapImg.naturalWidth, mh=mapImg.naturalHeight;
     const availW=W, availH=Math.max(200, H - UI_BOTTOM - UI_TOP);
-    let scale=Math.min(availW/mw, availH/mh)*1.10; scale=Math.min(scale, Math.min(availW/mw, availH/mh));
+    const baseScale = Math.min(availW/mw, availH/mh);
+    const scale = baseScale * MAP_ZOOM;   // même zoom
     const dw=mw*scale, dh=mh*scale;
-    const ox=(W-dw)/2, oy=UI_TOP + Math.max(0,(availH-dh)/2);
+    const ox=(W-dw)/2, oy=UI_TOP + (availH - dh)/2;
+
+    ctx.clearRect(0,0,W,H);
     ctx.drawImage(mapImg,ox,oy,dw,dh);
   } else if (force){
+    ctx.clearRect(0,0,W,H);
     ctx.fillStyle="#bfe2f8"; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle="#0e2b4a"; ctx.font="16px system-ui"; ctx.fillText(t.mapNotLoaded(MAP_URL), 14, 28);
+    ctx.fillStyle="#0e2b4a"; ctx.font="16px system-ui";
+    ctx.fillText(t.mapNotLoaded(MAP_URL), 14, 28);
   }
 }
 
