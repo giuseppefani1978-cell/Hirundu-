@@ -62,11 +62,11 @@
 
   /* ====== Boutons ====== */
   #musicBtn{
-    position:absolute;right:10px;bottom:10px;z-index:45;       /* ⬅︎ bas-droite */
+    position:absolute;right:10px;bottom:10px;z-index:45;
     background:#ffe8a6;border:2px solid #c8b37a;border-radius:10px;padding:8px 12px;font-weight:700;display:none
   }
   #replayFloat{
-    position:absolute;left:50%;bottom:14px;transform:translateX(-50%);  /* ⬅︎ bas-centre (n’empiète pas sur la danse) */
+    position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
     z-index:46;display:none;border:2px solid #7ac37a;background:#eaffea;font-weight:800;border-radius:10px;padding:8px 12px;
     box-shadow:0 6px 14px rgba(0,0,0,.15)
   }
@@ -84,7 +84,7 @@
        style="position:fixed;right:8px;bottom:8px;z-index:9999;
               background:rgba(0,0,0,.55);color:#fff;font:12px system-ui;
               padding:4px 6px;border-radius:6px;pointer-events:none">
-    v2025-08-20-a • host=<span id="__host__"></span>
+    v2025-08-20-b • host=<span id="__host__"></span>
   </div>
 
   <div class="wrap">
@@ -134,7 +134,7 @@
 
   <!-- ====== VERSION & CACHE-BUSTER ====== -->
   <script>
-    window.APP_VERSION = "v2025-08-20-a";
+    window.APP_VERSION = "v2025-08-20-b";
     window.APP_Q = "?v=" + window.APP_VERSION;
     (function(){ var s=document.getElementById("__host__"); if(s) s.textContent = location.hostname; console.log("[BUILD]", window.APP_VERSION, location.hostname); })();
   </script>
@@ -204,20 +204,11 @@ const MAP_URL       = "assets/salento-map.jpeg" + (window.APP_Q || "");
 const BIRD_URL      = "assets/aracne .PNG"      + (window.APP_Q || "");
 const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");
 
-/* Canvas */
+/* ===== Canvas & UI refs ===== */
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-let W=0,H=0,dpr=1;
-function resize(){
-  dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
-  W=canvas.clientWidth=canvas.parentElement.clientWidth;
-  H=canvas.clientHeight=canvas.parentElement.clientHeight;
-  canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-  positionTarBubble();   // recale la bulle par rapport au HUD
-}
-resize(); addEventListener('resize', resize);
 
-/* UI refs */
+/* UI refs — DÉFINIS AVANT tout appel à resize() */
 const touch     = document.getElementById('touch');
 const scoreEl   = document.getElementById('score');
 const starsEl   = document.getElementById('stars');
@@ -231,6 +222,18 @@ const musicBtn  = document.getElementById('musicBtn');
 const replayBtn = document.getElementById('replayFloat');
 const hudEl     = document.getElementById('hud');
 tarAvatar.src   = TARANTULA_URL;
+
+/* Resize (n’appelle positionTarBubble que si les refs existent) */
+let W=0,H=0,dpr=1;
+function resize(){
+  dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+  W=canvas.clientWidth=canvas.parentElement.clientWidth;
+  H=canvas.clientHeight=canvas.parentElement.clientHeight;
+  canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  if (typeof positionTarBubble === 'function' && hudEl && tarTop) { positionTarBubble(); }
+}
+/* ⚠️ Appel APRES les UI refs */
+resize(); addEventListener('resize', resize);
 
 /* Images */
 const mapImg=new Image(), birdImg=new Image(), spiderImg=new Image();
@@ -248,8 +251,7 @@ function assetFail(who,url,showPlaceholder){
 /* =========================================================
    DONNÉES / POIS / JOUEUR
 ========================================================= */
-/* Décalage supplémentaire pour coller au trait de côte côté Adriatique */
-const SHIFT_COAST = { x:0.045, y:0.026 }; // un chouilla plus qu’avant
+const SHIFT_COAST = { x:0.045, y:0.026 };
 const SHIFT_EAST  = 0.04;
 
 const POIS = [
@@ -265,13 +267,13 @@ const POIS = [
   { key:"lecce",         name:"Lecce",                         x:0.53, y:0.28, info:"le baroque en pietra leccese, Santa Croce et le Duomo" }
 ];
 
-const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 }; // normalisé [0..1]
+const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 };
 const collected= new Set();
 let currentIdx = 0;
 
-/* Réserves UI: haut pour la bulle, bas pour D-pad */
-const UI_BOTTOM = 160;   // D-pad réduit
-const UI_TOP    = 120;   // bandeau en haut
+/* Réserves UI */
+const UI_BOTTOM = 160;
+const UI_TOP    = 120;
 
 /* =========================================================
    AUDIO (bg loop, success, fail, finale infinie)
@@ -281,7 +283,6 @@ function createAudioOnce(){
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   masterGain = audioCtx.createGain(); masterGain.gain.value = 0.58; masterGain.connect(audioCtx.destination);
-  // iOS unlock
   const b = audioCtx.createBuffer(1,1,22050); const s = audioCtx.createBufferSource(); s.buffer=b; s.connect(masterGain); s.start(0);
 }
 async function startMusic(){
@@ -322,10 +323,9 @@ function playPhrase(){
 function starEmphasis(){ if(!audioCtx||!masterGain) return; const base=audioCtx.currentTime; [784,880,988,1175].forEach((f,i)=> scheduleSquare(f, base+i*0.08, 0.18, 0.46)); }
 function failSfx(){ if(!audioCtx||!masterGain) return; const t=audioCtx.currentTime; scheduleSquare(196,t,0.20,0.42); scheduleSquare(165,t+0.18,0.20,0.36); scheduleSquare(147,t+0.34,0.25,0.32); }
 
-/* Fanfare finale en boucle (jusqu’à Rejouer) + arrêt musique bg */
 function playFinaleLong(){
   if(!audioCtx||!masterGain) return;
-  if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; } // stop bg
+  if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
   const t0=audioCtx.currentTime+0.05;
   const seq1=[523,659,784,988,1175,1319], seq2=[1319,1175,988,784,659,523], chord=[523,659,784];
   let t=t0;
@@ -375,7 +375,6 @@ function asQuestionFromInfo(info){
   return `Dis-moi, où est ${s} ?`;
 }
 function positionTarBubble(){
-  // Colle la bulle au coin haut-droit du HUD avec 8px d’écart
   const hud = hudEl;
   if(!hud || !tarTop) return;
   const r = hud.getBoundingClientRect();
@@ -400,7 +399,6 @@ function showTarantulaSuccess(p){
 window.running=false;
 let lastTS=0, frameDT=0, lastFailAt=0; const FAIL_COOLDOWN=900;
 
-/* étoile */
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
   ctx.beginPath(); const pts=5,inner=R*0.45;
@@ -408,7 +406,6 @@ function drawStarfish(cx,cy,R){
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
 
-/* HUD étoiles */
 function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
 function refreshStars(){
   const n = collected.size;
@@ -423,14 +420,12 @@ function refreshStars(){
 }
 refreshStars();
 
-/* Dessin + logique */
 function draw(ts){
   if(ts){
     if(!lastTS) lastTS=ts;
     frameDT=Math.min(0.05,(ts-lastTS)/1000); lastTS=ts;
     if(finale){
       updateFireworks(frameDT);
-      // zoom & danse
       finaleTimer+=frameDT; finaleZoom=Math.min(1.35,1+finaleTimer*0.12);
       dancePhase+=frameDT*2.4;
       const cx=W/2, cy=(UI_TOP + (H-UI_BOTTOM-UI_TOP)/2);
@@ -441,24 +436,20 @@ function draw(ts){
     }
   }
 
-  /* Zone carte: sous UI_TOP, au-dessus D-pad — carte légèrement agrandie (~10%) */
   const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
   const availW=W, availH=Math.max(200, H-UI_BOTTOM-UI_TOP);
-  let scale=Math.min(availW/mw, availH/mh) * 1.10;                 // +10%
-  scale=Math.min(scale, Math.min(availW/mw, availH/mh));            // ne dépasse jamais la zone
+  let scale=Math.min(availW/mw, availH/mh) * 1.10;
+  scale=Math.min(scale, Math.min(availW/mw, availH/mh));
   const dw=mw*scale, dh=mh*scale;
   const ox=(W-dw)/2, oy=UI_TOP + Math.max(0,(availH-dh)/2);
 
   ctx.clearRect(0,0,W,H);
 
-  // Carte
   if (mapImg.complete && mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
   else { ctx.fillStyle="#d9e6f2"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#445"; ctx.font="16px system-ui"; ctx.fillText("Carte non chargée : "+MAP_URL, ox+14, oy+24); }
 
-  // Rideau doux finale
   if(finale){ ctx.fillStyle="rgba(0,0,0,0.22)"; ctx.fillRect(0,UI_TOP,W,H-UI_BOTTOM-UI_TOP); }
 
-  /* POI : X identiques si pas trouvés ; étoile si trouvé (aucun indice avant) */
   for(const p of POIS){
     const x=ox+p.x*dw, y=oy+p.y*dh;
     if(collected.has(p.key)){
@@ -471,7 +462,6 @@ function draw(ts){
     }
   }
 
-  /* Chemin progressif uniquement entre POI déjà validés */
   if(!finale && collected.size>0){
     ctx.save(); ctx.strokeStyle="#7a4c25"; ctx.lineWidth=4; ctx.lineCap="round"; ctx.lineJoin="round";
     ctx.beginPath();
@@ -485,7 +475,6 @@ function draw(ts){
     ctx.stroke(); ctx.restore();
   }
 
-  /* Aracne (jeu) / danse (finale) */
   const bw=Math.min(160,Math.max(90,dw*player.size));
   const bx=ox+player.x*dw, by=oy+player.y*dh;
   if(!finale){
@@ -493,7 +482,6 @@ function draw(ts){
     else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx,by,bw*0.35,0,Math.PI*2); ctx.fill(); }
   }
 
-  /* Collisions : succès (bon POI) / échec (mauvais X) */
   if(!finale && currentIdx < POIS.length){
     const p=POIS[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
     const onTarget = Math.hypot(bx-px,by-py)<44;
@@ -505,12 +493,11 @@ function draw(ts){
       currentIdx++;
       if(currentIdx===POIS.length){
         beginFinale(bx,by, ox+POIS[POIS.length-1].x*dw, oy+POIS[POIS.length-1].y*dh);
-        replayBtn.style.display='inline-block'; // fanfare continue tant qu’on ne rejoue pas
+        replayBtn.style.display='inline-block';
       }else{
-        askQuestionFor(POIS[currentIdx]); // prochaine devinette
+        askQuestionFor(POIS[currentIdx]);
       }
     }else{
-      // si on touche un autre X non encore validé → échec (cooldown)
       const now = performance.now();
       if(now - lastFailAt > FAIL_COOLDOWN){
         for(let i=0;i<POIS.length;i++){
@@ -523,7 +510,6 @@ function draw(ts){
     }
   }
 
-  // Feux + Danse
   if(finale || fireworks.length>0){ drawFireworks(); }
   if(finale){
     drawDancer(birdImg,   danceBird.x,   danceBird.y,   bw*danceBird.scale,      danceBird.angle);
@@ -548,31 +534,25 @@ function beginFinale(bx,by,lastPx,lastPy){
   touch.classList.remove('show');
   tarTop.classList.add('show');
 
-  // init danse
   danceBird.x=bx; danceBird.y=by; danceSpider.x=lastPx; danceSpider.y=lastPy;
   danceBird.scale=1.0; danceSpider.scale=1.0; dancePhase=0; finaleTimer=0; finaleZoom=1.0;
 
-  // stop musique de fond + lancer fanfare en boucle
   if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
-  musicOn = false;                     // empêche la relance auto du fond
-  musicBtn.textContent = "🎵 Musique"; // bouton redevient "Musique"
+  musicOn = false;
+  musicBtn.textContent = "🎵 Musique";
 
   playFinaleLong();
   triggerFireworksShow();
   window.__fwInterval__ = setInterval(triggerFireworksShow, 4500);
 }
 function resetGame(hideOverlay){
-  // Stop finale
   finale=false; fireworks.length=0; dancePhase=0; finaleTimer=0; finaleZoom=1;
   if(window.__fwInterval__){ clearInterval(window.__fwInterval__); window.__fwInterval__=null; }
   if(finaleLoopTimer){ clearTimeout(finaleLoopTimer); finaleLoopTimer=null; }
   replayBtn.style.display='none';
-  // Progression
   collected.clear(); currentIdx=0; refreshStars();
   player.x=0.55; player.y=0.25;
-  // Première question
   askQuestionFor(POIS[currentIdx]);
-  // Musique de fond si activée par l’utilisateur
   if(musicOn){ if(loopTimer){ clearTimeout(loopTimer); } playPhrase(); }
   if(hideOverlay){ const ov=document.getElementById('overlay'); ov.style.display='none'; }
 }
@@ -591,7 +571,6 @@ for(const el of document.querySelectorAll('.btn')){
   el.addEventListener('touchstart',e=>{press=true;step();e.preventDefault();},{passive:false});
   el.addEventListener('touchend',()=>{press=false;cancelAnimationFrame(id);});
 }
-/* Drag direct sur l’oiseau (désactivé en finale) */
 let dragging=false;
 canvas.addEventListener('touchstart',e=>{
   if(finale) return;
