@@ -12,11 +12,55 @@
   .game{position:relative;flex:1;overflow:hidden}
   canvas{width:100%;height:100%;display:block;background:#bfe2f8;touch-action:none}
 
-  /* ====== Overlay (Start) ====== */
+  /* ====== Overlay (Start + Intro) ====== */
   .overlay{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    background:rgba(169,214,245,.84);backdrop-filter:blur(3px);z-index:50
+    background:rgba(169,214,245,.84);backdrop-filter:blur(3px);z-index:50;flex-direction:column;gap:12px
   }
+  /* Intro scene */
+  .introScene{
+    position:relative;width:min(900px,92vw);height:min(42vh,360px);
+    border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;overflow:hidden;
+    box-shadow:0 10px 26px rgba(0,0,0,.18)
+  }
+  .ground{
+    position:absolute;left:0;right:0;bottom:0;height:34%;
+    background:linear-gradient(#f7f3e3,#e8dfc4);
+    border-top:1px solid #d8c995
+  }
+  .introChar{
+    position:absolute;width:120px;height:120px;bottom:22%;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform 1.3s ease-in-out,left 1.3s ease-in-out,right 1.3s ease-in-out;
+    will-change:transform,left,right;
+    animation:floatY 2.8s ease-in-out infinite;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))
+  }
+  .introChar img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
+  .introChar.bird{left:-160px;transform:scale(1)}
+  .introChar.spider{right:-160px;transform:scale(1)}
+  /* phase 1: entrée */
+  .introScene.enter .introChar.bird{left:18%}
+  .introScene.enter .introChar.spider{right:18%}
+  /* phase 2: rapprochement */
+  .introScene.meet .introChar.bird{left:36%;transform:scale(1.05) rotate(-3deg)}
+  .introScene.meet .introChar.spider{right:36%;transform:scale(1.05) rotate(3deg)}
+  /* phase 3: petite joie */
+  .introScene.cheer .introChar{animation:floatY 1.6s ease-in-out infinite}
+  @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+  /* Petites bulles BD */
+  .bubble{
+    position:absolute;max-width:44ch;background:#fff;border:1px solid #bbb;border-radius:10px;
+    padding:6px 8px;font:14px/1.35 system-ui;box-shadow:0 4px 10px rgba(0,0,0,.12);opacity:0;transform:translateY(6px);transition:all .35s ease
+  }
+  .bubble.show{opacity:1;transform:translateY(0)}
+  .bubble:after{content:"";position:absolute;bottom:-8px;left:18px;border:8px solid transparent;border-top-color:#fff;filter:drop-shadow(0 -1px 0 #bbb)}
+  .bBird{left:16%;bottom:60%}
+  .bSpider{right:16%;bottom:60%}
+  .bSpider:after{left:auto;right:18px}
+
+  /* Card de démarrage */
   .card{
     width:min(560px,92vw);border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;
     box-shadow:0 10px 26px rgba(0,0,0,.18);padding:18px;text-align:center
@@ -27,12 +71,12 @@
   .heroes{display:flex;justify-content:center;gap:16px;margin:10px 0 4px 0}
   .heroes img{width:72px;height:72px;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
 
-  /* ====== HUD — plus étroit (≈ moitié) ====== */
+  /* ====== HUD (réduit à ~moitié) ====== */
   .hud{
-  position:absolute;left:8px;top:50%;transform:translateY(-50%);
-  background:rgba(255,248,220,.96);border:2px solid #c8b37a;border-radius:10px;
-  padding:8px 6px;font-size:14px;z-index:22;width:42px;
-  display:flex;flex-direction:column;align-items:center;gap:6px
+    position:absolute;left:8px;top:50%;transform:translateY(-50%);
+    background:rgba(255,248,220,.96);border:2px solid #c8b37a;border-radius:10px;
+    padding:8px 6px;font-size:14px;z-index:22;width:42px;
+    display:flex;flex-direction:column;align-items:center;gap:6px
   }
   .hud h3{margin:0;font-size:14px;line-height:1}
   .hud .score{margin:0;font-weight:800;font-size:13px;line-height:1.1}
@@ -42,7 +86,7 @@
   /* ====== Bulle Tarantula — TOUT en haut à GAUCHE ====== */
   .tarTop{
     position:absolute;display:none;align-items:flex-start;gap:8px;z-index:40;max-width:calc(100vw - 16px);
-    left:8px; top:8px; /* ⬅️ collée à l’angle */
+    left:8px; top:8px;
   }
   .tarTop.show{display:flex}
   .tarTop img{width:56px;height:56px;object-fit:contain;background:transparent;border:none;border-radius:0;box-shadow:none;image-rendering:pixelated}
@@ -92,8 +136,19 @@
 
   <div class="wrap">
     <div class="game">
-      <!-- ===== Overlay Start ===== -->
+      <!-- ===== Overlay Start + Intro animée ===== -->
       <div class="overlay" id="overlay">
+
+        <!-- Scène animée -->
+        <div class="introScene" id="introScene">
+          <div class="introChar bird" id="introBird"><img id="introBirdImg" alt="Aracne"></div>
+          <div class="introChar spider" id="introSpider"><img id="introSpiderImg" alt="Tarantula"></div>
+          <div class="bubble bBird" id="bubbleBird">Prêt·e pour l’aventure&nbsp;?</div>
+          <div class="bubble bSpider" id="bubbleSpider">Collecte 10 étoiles pour révéler le Salento&nbsp;!</div>
+          <div class="ground"></div>
+        </div>
+
+        <!-- Carte de démarrage -->
         <div class="card" id="overlayCard">
           <div class="heroes">
             <img id="heroAr" alt="Aracne">
@@ -235,7 +290,7 @@ const I18N = {
     hudStars: "Stars",
     musicOn: "⏹️ Music",
     musicOff: "🎵 Music",
-    replay: "⟲ Replay",
+    replay: "⏹ Replay",
     ask: (info) => `Tell me, where is ${info}?`,
     success: (name) => `Great, that’s exactly it: ${name}!`,
     errTitle: "⚠️ Asset issue",
@@ -249,7 +304,6 @@ function pickLang(){
   if(raw.startsWith("it")) return "it";
   if(raw.startsWith("es")) return "es";
   if(raw.startsWith("en")) return "en";
-  // fallback par région
   if(["be","ch","ca","lu","mc"].some(cc=>raw.endsWith("-"+cc))) return "fr";
   if(["us","gb","au","nz","ie"].some(cc=>raw.endsWith("-"+cc))) return "en";
   return "en";
@@ -269,6 +323,14 @@ const t = I18N[LANG];
   $("musicBtn").textContent = t.musicOff;
   $("replayFloat").textContent = t.replay;
   $("errTitle").textContent = t.errTitle;
+
+  // Ajuste les bulles d'intro selon la langue (simple, non POI)
+  const b1 = (LANG==="it")?"Pronti all’avventura?":(LANG==="es")?"¿Listo para la aventura?":(LANG==="en")?"Ready for adventure?":"Prêt·e pour l’aventure ?";
+  const b2 = (LANG==="it")?"Raccogli 10 stelle per svelare il Salento!":(LANG==="es")?"¡Recoge 10 estrellas para revelar el Salento!":(LANG==="en")?"Collect 10 stars to reveal Salento!":"Collecte 10 étoiles pour révéler le Salento !";
+  const bubbleBird = document.getElementById("bubbleBird");
+  const bubbleSpider = document.getElementById("bubbleSpider");
+  if(bubbleBird) bubbleBird.textContent = b1;
+  if(bubbleSpider) bubbleSpider.textContent = b2;
 })();
 
 /* =========================================================
@@ -318,11 +380,32 @@ const musicBtn  = document.getElementById('musicBtn');
 const replayBtn = document.getElementById('replayFloat');
 const hudEl     = document.getElementById('hud');
 tarAvatar.src   = TARANTULA_URL;
-/* Avatars sur l’écran de démarrage */
+/* Avatars écran de démarrage + intro */
 document.getElementById('heroAr').src = BIRD_URL;
 document.getElementById('heroTa').src = TARANTULA_URL;
+document.getElementById('introBirdImg').src = BIRD_URL;
+document.getElementById('introSpiderImg').src = TARANTULA_URL;
 
-/* Resize (tarTop est désormais fixé en haut-gauche, plus d’alignement HUD) */
+/* ====== Intro timeline ====== */
+(function runIntro(){
+  const scene = document.getElementById('introScene');
+  const b1 = document.getElementById('bubbleBird');
+  const b2 = document.getElementById('bubbleSpider');
+  if(!scene) return;
+  // phase 1: entrée
+  setTimeout(()=> scene.classList.add('enter'), 300);
+  // phase 2: rapprochement
+  setTimeout(()=> scene.classList.add('meet'), 1600);
+  // bulles
+  setTimeout(()=> { b1.classList.add('show'); }, 2000);
+  setTimeout(()=> { b2.classList.add('show'); }, 2450);
+  // phase 3: joie
+  setTimeout(()=> scene.classList.add('cheer'), 3200);
+})();
+
+/* =========================================================
+   Resize
+========================================================= */
 let W=0,H=0,dpr=1;
 function resize(){
   dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -372,14 +455,12 @@ let currentIdx = 0;
 const UI_BOTTOM = 160;
 const UI_TOP    = 120;
 
-/* Labels éphémères (affichés sur la carte au succès) */
+/* Labels éphémères */
 const floatingLabels = []; // {text,x,y,age,life}
-
-/* Empêche tout mouvement pendant les messages de succès */
 let inputLocked = false;
 
 /* =========================================================
-   AUDIO (bg loop, success, fail, finale infinie)
+   AUDIO
 ========================================================= */
 let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null, finaleLoopTimer=null;
 function createAudioOnce(){
@@ -496,7 +577,6 @@ function drawStarfish(cx,cy,R){
   for(let i=0;i<pts*2;i++){const ang=(Math.PI/pts)*i - Math.PI/2; const r=(i%2===0)?R:inner; const x=cx+Math.cos(ang)*r; const y=cy+Math.sin(ang)*r; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);}
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
-
 function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
 function refreshStars(){
   const n = collected.size;
@@ -530,8 +610,10 @@ function drawLabels(dt){
     ctx.restore();
   }
 }
-/* ====== Zoom global de la carte ====== */
-const MAP_ZOOM = 1.30; // ≈ +30%
+
+/* ====== Zoom global de la carte (+30%) ====== */
+const MAP_ZOOM = 1.30;
+
 function draw(ts){
   if(ts){
     if(!lastTS) lastTS=ts;
@@ -551,19 +633,16 @@ function draw(ts){
   const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
   const availW=W, availH=Math.max(200, H-UI_BOTTOM-UI_TOP);
 
-  // === NOUVEAU: zoom global sans re-clamp ===
   const baseScale = Math.min(availW/mw, availH/mh);
   const scale = baseScale * MAP_ZOOM;
-
   const dw=mw*scale, dh=mh*scale;
 
-  // === NOUVEAU: centrage vertical même si la carte dépasse ===
   const ox=(W-dw)/2;
   const oy=UI_TOP + (availH - dh)/2;
 
   ctx.clearRect(0,0,W,H);
 
-  // Carte / Map
+  // Carte
   if (mapImg.complete && mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
   else { ctx.fillStyle="#bfe2f8"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#0e2b4a"; ctx.font="16px system-ui"; ctx.fillText(t.mapNotLoaded(MAP_URL), ox+14, oy+24); }
 
@@ -594,7 +673,6 @@ function draw(ts){
     let started = false;
     for (let i = 0; i < POIS.length - 1; i++) {
       const a = POIS[i], b = POIS[i + 1];
-      // on ne trace que si A et B sont déjà découverts
       if (!collected.has(a.key) || !collected.has(b.key)) continue;
 
       const ax = ox + a.x * dw, ay = oy + a.y * dh;
@@ -627,13 +705,11 @@ function draw(ts){
       collected.add(p.key); refreshStars();
       starEmphasis();
 
-      // Message succès localisé
       const nameShort = (p.name.split(" — ")[0]);
       bdTitle.textContent="Tarantula";
       bdText.textContent = t.success(nameShort);
       tarTop.classList.add('show');
 
-      // Label éphémère
       floatingLabels.push({ text: nameShort, x:px, y:py-22, age:0, life:2.0 });
 
       currentIdx++;
@@ -645,7 +721,6 @@ function draw(ts){
           inputLocked = false;
         }, 1200);
       }else{
-        // attend 2s puis pose la prochaine question (localisée)
         setTimeout(()=>{
           askQuestionFor(POIS[currentIdx]);
           inputLocked = false;
@@ -672,6 +747,7 @@ function draw(ts){
     drawDancer(spiderImg, danceSpider.x, danceSpider.y, bw*danceSpider.scale*0.9, danceSpider.angle);
   }
 }
+
 function drawDancer(img, cx, cy, size, angle){
   ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
   if(img.complete && img.naturalWidth) ctx.drawImage(img, -size/2, -size/2, size, size);
@@ -728,8 +804,6 @@ for(const el of document.querySelectorAll('.btn')){
   el.addEventListener('touchend',()=>{press=false;cancelAnimationFrame(id);});
 }
 
-/* (drag direct retiré volontairement pour éviter les “cacahuètes”) */
-
 /* =========================================================
    SPLASH
 ========================================================= */
@@ -739,7 +813,7 @@ function drawSplash(force){
     const mw=mapImg.naturalWidth, mh=mapImg.naturalHeight;
     const availW=W, availH=Math.max(200, H - UI_BOTTOM - UI_TOP);
     const baseScale = Math.min(availW/mw, availH/mh);
-    const scale = baseScale * MAP_ZOOM;   // même zoom
+    const scale = baseScale * MAP_ZOOM;
     const dw=mw*scale, dh=mh*scale;
     const ox=(W-dw)/2, oy=UI_TOP + (availH - dh)/2;
 
