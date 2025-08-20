@@ -78,51 +78,110 @@
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="game">
-    <!-- ===== Overlay Start ===== -->
-    <div class="overlay" id="overlay">
-      <div class="card" id="overlayCard">
-        <h1>Salento — Aracne & Tarantula</h1>
-        <p>Collecte les 10 étoiles et découvre les lieux secrets.</p>
-        <button id="startBtn" type="button" onclick="window.startGame && window.startGame()">Démarrer</button>
+  <!-- ====== BADGE VERSION VISUELLE ====== -->
+  <div id="__ver__"
+       style="position:fixed;right:8px;bottom:8px;z-index:9999;
+              background:rgba(0,0,0,.55);color:#fff;font:12px system-ui;
+              padding:4px 6px;border-radius:6px;pointer-events:none">
+    <!-- ⚠️ INCRÉMENTE APP_VERSION plus bas à chaque déploiement -->
+    v2025-08-19-c • host=<span id="__host__"></span>
+  </div>
+
+  <div class="wrap">
+    <div class="game">
+      <!-- ===== Overlay Start ===== -->
+      <div class="overlay" id="overlay">
+        <div class="card" id="overlayCard">
+          <h1>Salento — Aracne & Tarantula</h1>
+          <p>Collecte les 10 étoiles et découvre les lieux secrets.</p>
+          <button id="startBtn" type="button" onclick="window.startGame && window.startGame()">Démarrer</button>
+        </div>
       </div>
-    </div>
 
-    <!-- ===== UI ===== -->
-    <button id="musicBtn">🎵 Musique</button>
-    <button id="replayFloat">⟲ Rejouer</button>
-    <div class="err" id="err" style="display:none"><b>⚠️ Problème d’assets</b><div id="errText"></div></div>
-    <canvas id="c"></canvas>
+      <!-- ===== UI ===== -->
+      <button id="musicBtn">🎵 Musique</button>
+      <button id="replayFloat">⟲ Rejouer</button>
+      <div class="err" id="err" style="display:none"><b>⚠️ Problème d’assets</b><div id="errText"></div></div>
+      <canvas id="c"></canvas>
 
-    <!-- HUD colonne gauche (narrow) -->
-    <div class="hud" id="hud">
-      <h3>Étoiles</h3>
-      <div class="score" id="score">0/10</div>
-      <div class="stars" id="stars"></div>
-    </div>
-
-    <!-- Tarantula bubble top-left -->
-    <div class="tarTop" id="tarTop">
-      <img id="tarAvatar" alt="Tarantula">
-      <div class="bdBubble">
-        <div class="bdTitle" id="bdTitle">Tarantula</div>
-        <p id="bdText"></p>
+      <!-- HUD colonne gauche (narrow) -->
+      <div class="hud" id="hud">
+        <h3>Étoiles</h3>
+        <div class="score" id="score">0/10</div>
+        <div class="stars" id="stars"></div>
       </div>
-    </div>
 
-    <!-- D-pad tactile -->
-    <div class="touch" id="touch">
-      <div class="dpad">
-        <div></div> <div class="btn" data-dx="0" data-dy="-1">↑</div> <div></div>
-        <div class="btn" data-dx="-1" data-dy="0">←</div> <div></div> <div class="btn" data-dx="1" data-dy="0">→</div>
-        <div></div> <div class="btn" data-dx="0" data-dy="1">↓</div> <div></div>
+      <!-- Tarantula bubble top-left -->
+      <div class="tarTop" id="tarTop">
+        <img id="tarAvatar" alt="Tarantula">
+        <div class="bdBubble">
+          <div class="bdTitle" id="bdTitle">Tarantula</div>
+          <p id="bdText"></p>
+        </div>
+      </div>
+
+      <!-- D-pad tactile -->
+      <div class="touch" id="touch">
+        <div class="dpad">
+          <div></div> <div class="btn" data-dx="0" data-dy="-1">↑</div> <div></div>
+          <div class="btn" data-dx="-1" data-dy="0">←</div> <div></div> <div class="btn" data-dx="1" data-dy="0">→</div>
+          <div></div> <div class="btn" data-dx="0" data-dy="1">↓</div> <div></div>
+        </div>
       </div>
     </div>
   </div>
-</div>
-<div id="debugBox"></div>
+  <div id="debugBox"></div>
 
+  <!-- ====== PATCH #UI-VERSION & CACHE-BUSTER ====== -->
+  <script>
+    // ⚠️ Incrémente cette valeur à CHAQUE déploiement (ex: v2025-08-19-d)
+    window.APP_VERSION = "v2025-08-19-c";
+    window.APP_Q = "?v=" + window.APP_VERSION;
+
+    (function(){
+      var hostSpan = document.getElementById("__host__");
+      if (hostSpan) hostSpan.textContent = location.hostname;
+      try { console.log("[BUILD]", window.APP_VERSION, "host=", location.hostname); } catch(e){}
+    })();
+  </script>
+
+  <!-- ====== PATCH #NO-SW : désactive d’anciens Service Workers/caches ====== -->
+  <script>
+    (function(){
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations()
+          .then(function(list){
+            list.forEach(function(r){ r.unregister(); });
+            if (window.caches && caches.keys) {
+              caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); });
+            }
+          })
+          .catch(function(){});
+      }
+    })();
+  </script>
+
+  <!-- (Optionnel) PATCH #FORCE-REFRESH: bouton pour forcer un reload propre -->
+  <button id="__force__"
+          style="position:fixed;left:8px;bottom:8px;z-index:9999;
+                 background:#ffd;text-transform:uppercase;border:1px solid #cc3;
+                 border-radius:6px;padding:6px 8px;font:12px system-ui">
+    Force Refresh
+  </button>
+  <script>
+    (function(){
+      var btn = document.getElementById('__force__');
+      if (!btn) return;
+      btn.addEventListener('click', function(){
+        var url = new URL(location.href);
+        // Ajoute un paramètre unique pour forcer un GET neuf de l’HTML
+        url.searchParams.set('t', Date.now());
+        location.replace(url.toString());
+      });
+    })();
+  </script>
+</body>
+  
 <script>
 /* =========================================================
    BOOT / REPLAY
@@ -150,9 +209,9 @@ window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message
    ASSETS
 ========================================================= */
 /* ⚠️ Chemins EXACTS, y compris les espaces */
-const MAP_URL       = "assets/salento-map.jpeg";
-const BIRD_URL      = "assets/aracne .PNG";
-const TARANTULA_URL = "assets/tarantula .PNG";
+const MAP_URL       = "assets/salento-map.jpeg" + (window.APP_Q || "");
+const BIRD_URL      = "assets/aracne .PNG"      + (window.APP_Q || "");
+const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");
 
 /* Canvas */
 const canvas = document.getElementById('c');
