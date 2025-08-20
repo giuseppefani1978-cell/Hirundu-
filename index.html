@@ -75,6 +75,65 @@
   .err b{display:block;margin-bottom:4px}
   #debugBox{position:fixed;left:10px;bottom:10px;z-index:9999;background:#ffefef;border:2px solid #d66;
     padding:8px 10px;border-radius:8px;font:12px/1.3 system-ui;max-width:80vw;display:none}
+/* ==== PATCH: bouton musique en bas-droite ==== */
+#musicBtn{
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  top:auto !important;
+  z-index:45;
+  background:#ffe8a6;
+  border:2px solid #c8b37a;
+  border-radius:10px;
+  padding:8px 12px;
+  font-weight:700;
+  display:none;
+}
+
+/* ==== PATCH: HUD étoiles plus étroit (≈50%) ==== */
+.hud{
+  /* garde sa position colonne gauche */
+  left:8px;
+  top:50%;
+  transform:translateY(-50%);
+  background:rgba(255,248,220,.96);
+  border:2px solid #c8b37a;
+  border-radius:10px;
+  padding:8px 10px;
+  z-index:22;
+
+  /* étroit : largeur calée sur le mot "Étoiles" */
+  width:auto;
+  min-width:0;
+  max-width: calc(0.5 * 220px); /* ≈ moitié d’avant; ajuste si besoin */
+  display:inline-block;
+  box-sizing:border-box;
+}
+
+.hud h3{
+  font-size:14px;
+  line-height:1;
+  margin:0 0 4px 0;
+  white-space:nowrap; /* évite le retour ligne */
+}
+
+.hud .score{
+  font-size:12px;
+  line-height:1;
+  opacity:.85;
+  margin:0 0 6px 0;
+}
+
+.stars{
+  display:flex;
+  flex-direction:column;
+  gap:3px;            /* un peu plus serré */
+  margin-top:0;
+}
+.star{ width:16px; height:16px; opacity:.95 } /* icônes légèrement plus petites */
+
+/* ==== (Optionnel) bulle Tarantula : ligne plus large pour rester horizontale en haut ==== */
+.bdBubble{ max-width:min(820px,94vw) }
 </style>
 </head>
 <body>
@@ -270,6 +329,13 @@ const POIS = [
   { key:"nardo",         name:"Nardò",                         x:0.28, y:0.50, info:"le centre baroque et Porto Selvaggio tout proche" },
   { key:"lecce",         name:"Lecce",                         x:0.53, y:0.28, info:"le baroque en pietra leccese, Santa Croce et le Duomo" }
 ];
+/* Applique un décalage sur certains POI pour les coller à la côte */
+for (const p of POIS) {
+  if (COAST_KEYS.has(p.key)) {
+    p.x = Math.min(1, p.x + COAST_SHIFT.x);
+    p.y = Math.min(1, p.y + COAST_SHIFT.y);
+  }
+}
 
 const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 }; // normalisé [0..1]
 const collected= new Set();
@@ -278,6 +344,12 @@ let currentIdx = 0;
 /* Réserves UI: haut pour la bulle, bas pour D-pad */
 const UI_BOTTOM = 160;   // D-pad réduit
 const UI_TOP    = 120;   // bandeau en haut (bulle) — carte commence sous cette hauteur
+/* ==== PATCH: zoom carte +10% et décalage POI vers côte ==== */
+const MAP_ZOOM = 1.10; // grossir la carte d’environ 10%
+
+// décalage spécifique (vers la droite + un peu vers le bas) pour coller à la côte jaune
+const COAST_SHIFT = { x: 0.030, y: 0.015 }; // ajuste si besoin (+ à droite, + en bas)
+const COAST_KEYS = new Set(["otranto","portobadisco","santacesarea","castro","ciolo","leuca"]);
 
 /* =========================================================
    AUDIO (bg loop, success, fail, finale infinie)
@@ -454,10 +526,22 @@ function draw(ts){
   }
 
   /* Zone carte: sous UI_TOP, au-dessus D-pad (donc la bulle ne recouvre jamais la carte) */
-  const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
-  const availW=W, availH=Math.max(200, H-UI_BOTTOM-UI_TOP);
-  const scale=Math.min(availW/mw, availH/mh), dw=mw*scale, dh=mh*scale;
-  const ox=(W-dw)/2, oy=UI_TOP + Math.max(0,(availH-dh)/2);
+  const mw = mapImg.naturalWidth || 1920;
+const mh = mapImg.naturalHeight || 1080;
+
+/* on “élastique” un peu l’espace utile pour pouvoir grossir la carte */
+const availW = W;
+const availH = Math.max(200, H - UI_BOTTOM - UI_TOP);
+
+/* zoom carte : on multiplie directement, même si ça “mange” un peu plus l’espace UI */
+const scale  = Math.min(availW / mw, availH / mh) * MAP_ZOOM;
+const dw = mw * scale;
+const dh = mh * scale;
+
+/* on recentre; la carte peut empiéter un peu plus sur l’espace UI, c’est voulu */
+const ox = (W - dw) / 2;
+const oy = UI_TOP + Math.max(0, ( (H - UI_BOTTOM - UI_TOP) - dh ) / 2);
+
 
   ctx.clearRect(0,0,W,H);
 
