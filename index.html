@@ -352,20 +352,12 @@ window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message
 ========================================================= */
 const MAP_URL       = "assets/salento-map.PNG" + (window.APP_Q || "");
 const BIRD_URL      = "assets/aracne .PNG"      + (window.APP_Q || "");       /* <-- espace retiré */
-const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");       /* <-- espace 
-// === PATCH 1: sprites ennemis ===
-const CROW_URL   = "assets/crow.PNG"       + (window.APP_Q || "");
-const JELLY_URL  = "assets/jellyfish.PNG"  + (window.APP_Q || "");
+const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");       /* <-- 
 
-// Images sprites
-const crowImg  = new Image();
-const jellyImg = new Image();
+// Nouveaux ennemis
+const crowImg    = new Image(); crowImg.src      = "assets/crow.PNG";
 
-crowImg.onerror  = () => assetFail("Corbeau (sprite)",  CROW_URL);
-jellyImg.onerror = () => assetFail("Méduse (sprite)",   JELLY_URL);
-
-crowImg.src  = CROW_URL;
-jellyImg.src = JELLY_URL;
+const jellyImg   = new Image(); jellyImg.src     = "assets/jelly.PNG";
 
 /* ===== Canvas & UI refs ===== */
 const canvas = document.getElementById('c');
