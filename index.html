@@ -353,6 +353,10 @@ window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message
 const MAP_URL       = "assets/salento-map.PNG" + (window.APP_Q || "");
 const BIRD_URL      = "assets/aracne .PNG"      + (window.APP_Q || "");       /* <-- espace retiré */
 const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");       /* <-- espace retiré */
+// Ennemis
+const jellyfishImg = new Image(); jellyfishImg.src = "assets/jellyfish.png";
+
+const crowImg = new Image(); crowImg.src = "assets/crow.png";
 
 /* ===== Canvas & UI refs ===== */
 const canvas = document.getElementById('c');
@@ -824,38 +828,36 @@ function refreshStars(){
   }
 }
 
-function drawEnemy(e, ox, oy, dw, dh){
-  const x = ox + e.x*dw, y = oy + e.y*dh;
-  ctx.save();
+function drawEnemies() {
+  for (const e of enemies) {
+    const ex = e.x * W, ey = e.y * H;
+    const size = 48; // taille des sprites (ajuste selon ton PNG)
 
-  if (e.state === "flee"){
-    const remain = Math.max(0, e.fleeUntil - performance.now())/700;
-    ctx.globalAlpha = Math.max(0.12, Math.min(1, remain));
-  }
-
-  if(e.type === "jelly"){
-    ctx.fillStyle = "rgba(123,200,255,0.85)";
-    ctx.beginPath(); ctx.arc(x,y,18,Math.PI,0); ctx.fill();
-    ctx.fillRect(x-18,y,36,8);
-    for(let i=0;i<5;i++){
-      ctx.beginPath();
-      ctx.moveTo(x-14+i*7, y+8);
-      ctx.quadraticCurveTo(x-14+i*7, y+22+(i%2?6:-4), x-14+i*7, y+32);
-      ctx.strokeStyle = "rgba(80,150,220,0.9)";
-      ctx.lineWidth = 2; ctx.stroke();
+    if (e.type === "jellyfish") {
+      if (jellyfishImg.complete) {
+        ctx.drawImage(jellyfishImg, ex - size / 2, ey - size / 2, size, size);
+      } else {
+        ctx.fillStyle = "purple";
+        ctx.beginPath();
+        ctx.arc(ex, ey, size / 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (e.type === "crow") {
+      if (crowImg.complete) {
+        ctx.drawImage(crowImg, ex - size / 2, ey - size / 2, size, size);
+      } else {
+        ctx.fillStyle = "black";
+        ctx.beginPath();
+        ctx.moveTo(ex - size / 2, ey);
+        ctx.lineTo(ex, ey - size / 2);
+        ctx.lineTo(ex + size / 2, ey);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
-  }else{
-    ctx.translate(x,y);
-    ctx.rotate(Math.atan2(e.vy, e.vx));
-    ctx.fillStyle = "#242424";
-    ctx.beginPath();
-    ctx.moveTo(-20,0); ctx.lineTo(10,-8); ctx.lineTo(10,8); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(-6,0,10,6,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="#ffd400"; ctx.fillRect(10,-2,6,4);
   }
-  ctx.restore();
 }
-
+  
 function drawBonus(b, ox, oy, dw, dh){
   const x = ox + b.x*dw, y = oy + b.y*dh;
   const r = 10 + Math.sin(b.pulse*6)*2;
