@@ -758,8 +758,8 @@ function refreshStars(){
     im.className='star';
     im.src=starSVG(i<n?"#d26f45":"#f0c9a7");
     starsEl.appendChild(im);
+ }
 }
-
 function drawEnemy(e, ox, oy, dw, dh){
   const x = ox + e.x*dw, y = oy + e.y*dh;
   ctx.save();
