@@ -78,12 +78,12 @@
   /* ====== Boutons ====== */
   #musicBtn{
     position:absolute;right:10px;bottom:10px;z-index:45;
-    background:#ffe8a6;border:2px solid #c8b37a;border-radius:10px;padding:8px 12px;font-weight:700;display:none
+    background:#ffe8a6;border:2px solid #c8b37a;border-radius:10px;padding:8px 12px;font-weight:700;display:none;cursor:pointer
   }
   #replayFloat{
     position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
     z-index:46;display:none;border:2px solid #7ac37a;background:#eaffea;font-weight:800;border-radius:10px;padding:8px 12px;
-    box-shadow:0 6px 14px rgba(0,0,0,.15)
+    box-shadow:0 6px 14px rgba(0,0,0,.15);cursor:pointer
   }
 
   /* ====== Erreurs / Debug ====== */
@@ -119,8 +119,8 @@
       </div>
 
       <!-- ===== UI ===== -->
-      <button id="musicBtn">🎵 Musique</button>
-      <button id="replayFloat">⟲ Rejouer</button>
+      <button id="musicBtn" type="button">🎵 Musique</button>
+      <button id="replayFloat" type="button">⟲ Rejouer</button>
       <div class="err" id="err" style="display:none"><b id="errTitle">⚠️ Problème d’assets</b><div id="errText"></div></div>
       <canvas id="c"></canvas>
 
@@ -177,9 +177,10 @@
 
   <!-- Bouton Force Refresh (optionnel) -->
   <button id="__force__"
+          type="button"
           style="position:fixed;left:8px;bottom:8px;z-index:9999;
                  background:#ffd;text-transform:uppercase;border:1px solid #cc3;
-                 border-radius:6px;padding:6px 8px;font:12px system-ui">
+                 border-radius:6px;padding:6px 8px;font:12px system-ui;cursor:pointer">
     Force Refresh
   </button>
   <script>
@@ -187,6 +188,7 @@
       var btn = document.getElementById('__force__');
       if (!btn) return;
       btn.addEventListener('click', function(){
+        console.log('Force refresh click');
         var url = new URL(location.href);
         url.searchParams.set('t', Date.now());
         location.replace(url.toString());
@@ -256,18 +258,8 @@ const I18N = {
     assetMissing: (who,url)=>`• ${who} missing: "${url}"`
   }
 };
-// Renvoie le nom i18n du POI (fallback sur FR puis sur la clé)
-function poiName(key){
-  try{
-    if (window.POI_TEXT && POI_TEXT[LANG] && POI_TEXT[LANG][key] && POI_TEXT[LANG][key].name)
-      return POI_TEXT[LANG][key].name;
-    if (window.POI_TEXT && POI_TEXT.fr && POI_TEXT.fr[key] && POI_TEXT.fr[key].name)
-      return POI_TEXT.fr[key].name;
-  }catch(e){}
-  return key;
-}
 
-/* Map d’alias et normalisation des codes (gère tirets/underscores/casse) */
+/* Map d’alias et normalisation */
 const SUPPORTED = Object.keys(I18N);
 const LOCALE_ALIASES = {
   "fr-ca":"fr","fr-ch":"fr","fr-be":"fr","fr-lu":"fr","fr-mc":"fr",
@@ -276,7 +268,6 @@ const LOCALE_ALIASES = {
   "en-gb":"en","en-us":"en","en-au":"en","en-ca":"en","en-nz":"en","en-ie":"en","en-in":"en"
 };
 
-/* Lecture d’un override côté URL/localStorage (ex: ?lang=fr) */
 function getLangOverride(){
   try{
     const url = new URL(location.href);
@@ -288,7 +279,6 @@ function getLangOverride(){
   return "";
 }
 
-/* Renvoie une langue supportée */
 function detectLang(){
   const override = getLangOverride();
   const candidatesRaw = [];
@@ -349,6 +339,7 @@ window.startGame = function(){
     requestAnimationFrame(loop);
   }catch(e){ alert('Start error: '+e.message); }
 };
+document.getElementById('startBtn').addEventListener('click', ()=>window.startGame && window.startGame());
 document.getElementById('replayFloat').addEventListener('click', ()=>{ resetGame(true); window.startGame(); });
 
 /* Debug à l’écran */
@@ -360,8 +351,8 @@ window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message
    ASSETS
 ========================================================= */
 const MAP_URL       = "assets/salento-map.PNG" + (window.APP_Q || "");
-const BIRD_URL      = "assets/aracne .PNG"      + (window.APP_Q || "");
-const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");
+const BIRD_URL      = "assets/aracne.PNG"      + (window.APP_Q || "");       /* <-- espace retiré */
+const TARANTULA_URL = "assets/tarantula.PNG"   + (window.APP_Q || "");       /* <-- espace retiré */
 
 /* ===== Canvas & UI refs ===== */
 const canvas = document.getElementById('c');
@@ -407,8 +398,6 @@ function assetFail(who,url,showPlaceholder){
   errText.innerHTML += (errText.innerHTML? "<br>":"") + t.assetMissing(who,url);
   if(showPlaceholder) drawSplash(true);
 }
-birdImg.addEventListener('error', ()=>assetFail('Aracne', BIRD_URL));
-spiderImg.addEventListener('error', ()=>assetFail('Tarantula', TARANTULA_URL));
 
 /* =========================================================
    DONNÉES / POIS / JOUEUR
@@ -432,13 +421,8 @@ const POIS = [
 const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 };
 let collected= new Set();
 
-/* ===== Effet de “vibration” (shake) joueur limité à 2 s ===== */
-let hitShake = 0;            // temps restant en secondes
-const HIT_SHAKE_MAX = 2.0;   // clamp dur
-const HIT_SHAKE_DECAY = 4.0; // facteur de décroissance (plus grand => plus court)
-
 /* =========================================================
-   Textes POI multi-langues (name + info)
+   Textes POI multi-langues (pack + helpers)
 ========================================================= */
 const POI_TEXT = {
   fr: {
@@ -490,8 +474,6 @@ const POI_TEXT = {
     lecce:        { name:"Lecce",                            info:"barroco en pietra leccese, Santa Croce y el Duomo" }
   }
 };
-
-/* Helpers i18n */
 function poiPack(key){
   const pack = POI_TEXT[LANG] || POI_TEXT.en;
   const fr   = POI_TEXT.fr;
@@ -574,6 +556,7 @@ function playFinaleLong(){
   chord.forEach(f=> scheduleSquare(f*2, t, 1.0, 0.48));
   finaleLoopTimer = setTimeout(playFinaleLong, 10500);
 }
+
 /* =========================================================
    GAMEPLAY+ : Ennemis & Bonus & Score
 ========================================================= */
@@ -583,17 +566,17 @@ let collisionCount = 0, bonusCount = 0;
 let playerSlowTimer = 0; // ralentissement temporaire après collision
 
 /* ---- CONFIG équilibrage ---- */
-const MAX_ENEMIES        = 4;      // moins d’ennemis
+const MAX_ENEMIES        = 4;
 const ENEMY_LIFETIME     = 14;     // s
 const ENEMY_BASE_SPAWN   = 4200;   // ms
 const ENEMY_SPAWN_JITTER = 2600;   // ms
 const BONUS_LIFETIME     = 4;      // s
 const COLLIDE_PX         = 36;     // rayon collision px
 
-/* ---- SHAKE joueur ---- */
-let hitShake = 0;                      // temps restant
-const HIT_SHAKE_MAX   = 2.4;           // max ~2.4s
-const HIT_SHAKE_DECAY = 1.0;           // décrément 1s/s
+/* ---- SHAKE joueur (visuel) ---- */
+let hitShake = 0;                      // temps restant de shake (s)
+const HIT_SHAKE_MAX   = 2.4;           // clamp max ~2.4s
+const HIT_SHAKE_DECAY = 1.0;           // s^-1
 
 /* vitesse effective du joueur (ralenti si touché) */
 function currentSpeed(){
@@ -606,11 +589,11 @@ function currentSpeed(){
    Spawns
 ------------------------------ */
 function spawnEnemy(){
-  if (enemies.length >= MAX_ENEMIES) return; // respect du cap
+  if (enemies.length >= MAX_ENEMIES) return;
   const type  = (Math.random() < 0.5) ? "jelly" : "crow";
   const x     = Math.random()*0.9 + 0.05;
   const y     = Math.random()*0.9 + 0.05;
-  const speed = (type === "jelly" ? 0.06 : 0.10); // fraction largeur / s
+  const speed = (type === "jelly" ? 0.06 : 0.10);
   const dir   = Math.random() * Math.PI * 2;
   enemies.push({
     type, x, y,
@@ -620,7 +603,7 @@ function spawnEnemy(){
     t: 0,
     bornAt: performance.now(),
     state: "normal",         // "normal" | "flee"
-    fleeUntil: 0             // timestamp ms quand la fuite s’arrête
+    fleeUntil: 0
   });
 }
 
@@ -715,48 +698,40 @@ function updateGameplayPlus(dt, ox, oy, dw, dh, bx, by){
   for(const e of enemies){
     e.t += dt;
 
-    // si en fuite, on réduit lentement leur vitesse et on finit par les supprimer
     if (e.state === "flee"){
       if (now >= e.fleeUntil){
-        // fuite finie -> on retire l’ennemi
         e._remove = true;
       } else {
-        // friction légère en fuite (ils ralentissent un peu)
         e.vx *= 0.995; e.vy *= 0.995;
       }
     } else if (e.type === "jelly"){
-      // wobble léger en mode normal
       e.vx += Math.sin(e.t*1.7)*0.0008;
       e.vy += Math.cos(e.t*1.3)*0.0008;
     }
 
     e.x += e.vx*dt; e.y += e.vy*dt;
 
-    // rebond bords (ne pas laisser sortir définitivement)
+    // rebond bords
     if(e.x < PAD || e.x > 1-PAD){ e.vx *= -1; e.x = Math.max(PAD, Math.min(1-PAD, e.x)); }
     if(e.y < PAD || e.y > 1-PAD){ e.vy *= -1; e.y = Math.max(PAD, Math.min(1-PAD, e.y)); }
   }
-  // purge des ennemis marqués à retirer
   enemies = enemies.filter(e => !e._remove);
 
   // collisions joueur <-> ennemis
   for(const e of enemies){
-    if (e.state === "flee") continue; // ignoré pendant la fuite
+    if (e.state === "flee") continue;
     const ex = ox + e.x*dw, ey = oy + e.y*dh;
     const d  = Math.hypot(bx - ex, by - ey);
     if(d < COLLIDE_PX){
-      // pousse un peu le joueur
       const ang = Math.atan2(by - ey, bx - ex);
       player.x = Math.max(0, Math.min(1, player.x + Math.cos(ang)*0.02));
       player.y = Math.max(0, Math.min(1, player.y + Math.sin(ang)*0.02));
 
-      // compteurs / feedback
       collisionCount++;
       playerSlowTimer = 1.25;
-      hitShake = Math.min(HIT_SHAKE_MAX, hitShake + 0.6); // vibration limitée
+      hitShake = Math.min(HIT_SHAKE_MAX, hitShake + 0.6);
       failSfx();
 
-      // ennemi passe en fuite
       const fleeSpeed = 0.38;
       const away = Math.atan2((ey - by), (ex - bx));
       e.vx = Math.cos(away) * fleeSpeed;
@@ -777,8 +752,7 @@ function updateGameplayPlus(dt, ox, oy, dw, dh, bx, by){
       ping(880, 0.35);
       floatingLabels.push({ text:"Bonus!", x:bpx, y:bpy-16, age:0, life:1.5 });
       bonuses.splice(i,1);
-      playerSlowTimer = 0; // annule le ralentissement si actif
-      // petit shake positif court
+      playerSlowTimer = 0;
       hitShake = Math.min(HIT_SHAKE_MAX, hitShake + 0.2);
     }
   }
@@ -787,10 +761,6 @@ function updateGameplayPlus(dt, ox, oy, dw, dh, bx, by){
 /* =========================================================
    Bulle / Questions
 ========================================================= */
-function asQuestionFromInfo(info){
-  const s=((info||"ce lieu")+"").trim();
-  return t.ask(s);
-}
 function askQuestionFor(p){
   if(!p) return;
   bdTitle.textContent = "Tarantula";
@@ -858,14 +828,12 @@ function drawEnemy(e, ox, oy, dw, dh){
   const x = ox + e.x*dw, y = oy + e.y*dh;
   ctx.save();
 
-  // transparence quand en fuite (disparition progressive)
   if (e.state === "flee"){
-    const remain = Math.max(0, e.fleeUntil - performance.now())/700; // ~0..>1
+    const remain = Math.max(0, e.fleeUntil - performance.now())/700;
     ctx.globalAlpha = Math.max(0.12, Math.min(1, remain));
   }
 
   if(e.type === "jelly"){
-    // Méduse minimaliste
     ctx.fillStyle = "rgba(123,200,255,0.85)";
     ctx.beginPath(); ctx.arc(x,y,18,Math.PI,0); ctx.fill();
     ctx.fillRect(x-18,y,36,8);
@@ -877,14 +845,13 @@ function drawEnemy(e, ox, oy, dw, dh){
       ctx.lineWidth = 2; ctx.stroke();
     }
   }else{
-    // Corbeau stylisé simple
     ctx.translate(x,y);
     ctx.rotate(Math.atan2(e.vy, e.vx));
     ctx.fillStyle = "#242424";
     ctx.beginPath();
     ctx.moveTo(-20,0); ctx.lineTo(10,-8); ctx.lineTo(10,8); ctx.closePath(); ctx.fill();
     ctx.beginPath(); ctx.ellipse(-6,0,10,6,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="#ffd400"; ctx.fillRect(10,-2,6,4); // bec
+    ctx.fillStyle="#ffd400"; ctx.fillRect(10,-2,6,4);
   }
   ctx.restore();
 }
@@ -1079,12 +1046,12 @@ function draw(ts){
   let shakeX = 0, shakeY = 0;
   if (hitShake > 0){
     const a = Math.min(1, hitShake / HIT_SHAKE_MAX);
-    const mag = 6 * a; // amplitude max 6 px
+    const mag = 6 * a;
     shakeX = (Math.random()*2-1) * mag;
     shakeY = (Math.random()*2-1) * mag;
   }
 
-  // joueur par-dessus
+  // joueur
   if(!finale){
     if (birdImg.complete && birdImg.naturalWidth)
       ctx.drawImage(birdImg, bx-bw/2+shakeX, by-bw/2+shakeY, bw, bw);
@@ -1160,7 +1127,6 @@ function loop(ts){ if(!window.running) return; draw(ts); requestAnimationFrame(l
 function beginFinale(bx,by,lastPx,lastPy){
   finale=true;
 
-  // Score : étoiles *100 + bonus *25 - collisions *15
   const stars = collected.size;
   const score = stars*100 + bonusCount*25 - collisionCount*15;
   let rank;
@@ -1170,8 +1136,7 @@ function beginFinale(bx,by,lastPx,lastPy){
 
   setTimeout(()=>{
     bdTitle.textContent = "Tarantula";
-    // >>> phrase demandée
-    bdText.textContent = `Final Score, Aracne : ${score} — ${rank}\n(⭐ ${stars}, 🎁 ${bonusCount}, 💥 ${collisionCount})`;
+    bdText.textContent  = `Final Score, Aracne : ${score} — ${rank}\n(⭐ ${stars}, 🎁 ${bonusCount}, 💥 ${collisionCount})`;
     tarTop.classList.add('show');
   }, 900);
 
@@ -1202,14 +1167,12 @@ function resetGame(hideOverlay){
   player.x=0.55; player.y=0.25;
   inputLocked=false;
 
-  // Reset gameplay+ (ennemis/bonus/score)
   enemies.length = 0; bonuses.length = 0;
   enemySpawnAt = performance.now() + 800;
   bonusSpawnAt = performance.now() + 1400;
   collisionCount = 0; bonusCount = 0; playerSlowTimer = 0;
   hitShake = 0;
 
-  // première question
   askQuestionFor(QUEST[currentIdx]);
 
   if(musicOn){ if(loopTimer){ clearTimeout(loopTimer); } playPhrase(); }
@@ -1257,4 +1220,4 @@ function drawSplash(force){
 askQuestionFor(POIS[0]); // placeholder visuel avant start
 </script>
 </body>
-</html> 
+</html>
