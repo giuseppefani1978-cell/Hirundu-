@@ -574,7 +574,6 @@ function playFinaleLong(){
   chord.forEach(f=> scheduleSquare(f*2, t, 1.0, 0.48));
   finaleLoopTimer = setTimeout(playFinaleLong, 10500);
 }
-
 /* =========================================================
    GAMEPLAY+ : Ennemis & Bonus & Score
 ========================================================= */
@@ -584,11 +583,17 @@ let collisionCount = 0, bonusCount = 0;
 let playerSlowTimer = 0; // ralentissement temporaire après collision
 
 /* ---- CONFIG équilibrage ---- */
-const MAX_ENEMIES = 4;         // <= moins d’ennemis à l’écran
-const ENEMY_LIFETIME = 14;     // s, auto-despawn pour limiter la densité
-const ENEMY_BASE_SPAWN = 4200; // ms, spawn de base
-const ENEMY_SPAWN_JITTER = 2600;
-const BONUS_LIFETIME = 4;
+const MAX_ENEMIES        = 4;      // <= moins d’ennemis à l’écran
+const ENEMY_LIFETIME     = 14;     // s, auto-despawn pour limiter la densité
+const ENEMY_BASE_SPAWN   = 4200;   // ms
+const ENEMY_SPAWN_JITTER = 2600;   // ms
+const BONUS_LIFETIME     = 4;      // s
+const COLLIDE_PX         = 36;     // rayon collision px
+
+/* ---- SHAKE joueur (visuel) ---- */
+let hitShake = 0;                      // temps restant de shake (s)
+const HIT_SHAKE_MAX   = 2.4;           // clamp max ~2.4s
+const HIT_SHAKE_DECAY = 1.0;           // s^-1 (retire 1s de shake par s)
 
 /* vitesse effective du joueur (ralenti si touché) */
 function currentSpeed(){
@@ -597,29 +602,36 @@ function currentSpeed(){
   return base * factor;
 }
 
+/* ------------------------------
+   Spawns
+------------------------------ */
 function spawnEnemy(){
-  // respect du cap
-  if (enemies.length >= MAX_ENEMIES) return;
-  const types = ["jelly","crow"]; // méduse / corbeau
-  const type = (Math.random() < 0.5) ? types[0] : types[1];
-  const x = Math.random()*0.9 + 0.05;
-  const y = Math.random()*0.9 + 0.05;
+  if (enemies.length >= MAX_ENEMIES) return; // respect du cap
+  const type  = (Math.random() < 0.5) ? "jelly" : "crow";
+  const x     = Math.random()*0.9 + 0.05;
+  const y     = Math.random()*0.9 + 0.05;
   const speed = (type === "jelly" ? 0.06 : 0.10); // fraction largeur / s
-  const dir = Math.random() * Math.PI * 2;
+  const dir   = Math.random() * Math.PI * 2;
   enemies.push({
     type, x, y,
     vx: Math.cos(dir)*speed,
     vy: Math.sin(dir)*speed,
     r: 0.035,
     t: 0,
-    bornAt: performance.now()
+    bornAt: performance.now(),
+    state: "normal",         // "normal" | "flee"
+    fleeUntil: 0             // timestamp ms quand la fuite s’arrête
   });
 }
+
 function spawnBonus(){
   bonuses.push({
     x: Math.random()*0.9 + 0.05,
     y: Math.random()*0.9 + 0.05,
-    life: BONUS_LIFETIME, age: 0, r: 0.028, pulse: 0
+    life: BONUS_LIFETIME,
+    age: 0,
+    r: 0.028,
+    pulse: 0
   });
 }
 
@@ -632,10 +644,21 @@ let danceBird={x:0,y:0,scale:1,angle:0}, danceSpider={x:0,y:0,scale:1,angle:0};
 function launchFireworksBurst(cx,cy,parts=42, big=true){
   for(let i=0;i<parts;i++){
     const ang=(i/parts)*Math.PI*2, speed=(big?160:90)+Math.random()*(big?180:90);
-    fireworks.push({ x:cx,y:cy, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed, life:1.3+Math.random()*.8, age:0, color:`hsl(${Math.floor(Math.random()*360)},82%,60%)`, baseSize: big?3.6:2.2 });
+    fireworks.push({
+      x:cx, y:cy, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
+      life:1.3+Math.random()*.8, age:0,
+      color:`hsl(${Math.floor(Math.random()*360)},82%,60%)`,
+      baseSize: big?3.6:2.2
+    });
   }
 }
-function updateFireworks(dt){ const g=140; fireworks=fireworks.filter(p=>{ p.age+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=g*dt*0.5; return p.age<p.life; }); }
+function updateFireworks(dt){
+  const g=140;
+  fireworks = fireworks.filter(p=>{
+    p.age+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=g*dt*0.5;
+    return p.age<p.life;
+  });
+}
 function drawFireworks(){
   ctx.save();
   if(finale){
@@ -643,7 +666,9 @@ function drawFireworks(){
     ctx.translate(cx,cy); ctx.scale(finaleZoom,finaleZoom); ctx.translate(-cx,-cy);
   }
   for(const p of fireworks){
-    const a=1-(p.age/p.life); ctx.globalAlpha=Math.max(0,a); ctx.fillStyle=p.color;
+    const a=1-(p.age/p.life);
+    ctx.globalAlpha=Math.max(0,a);
+    ctx.fillStyle=p.color;
     const r=(p.baseSize+(finale?2.0:0))*(1+0.6*(1-a));
     ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2); ctx.fill();
   }
@@ -651,19 +676,28 @@ function drawFireworks(){
 }
 function triggerFireworksShow(){
   const slots=[0,500,1000,1600,2200,3000];
-  slots.forEach((t,i)=> setTimeout(()=> launchFireworksBurst((0.2+0.6*Math.random())*W, UI_TOP+(0.1+0.7*Math.random())*(H-UI_BOTTOM-UI_TOP), 40+(i*4), true), t));
+  slots.forEach((t,i)=> setTimeout(()=> {
+    launchFireworksBurst(
+      (0.2+0.6*Math.random())*W,
+      UI_TOP+(0.1+0.7*Math.random())*(H-UI_BOTTOM-UI_TOP),
+      40+(i*4), true
+    );
+  }, t));
 }
 
-/* MàJ gameplay+ à chaque frame */
+/* =========================================================
+   UPDATE GAMEPLAY+ (par frame)
+========================================================= */
 function updateGameplayPlus(dt, ox, oy, dw, dh, bx, by){
   const now = performance.now();
+
+  // spawns contrôlés
   if(!finale){
-    // spawn contrôlé par cap
-    if(now > enemySpawnAt){
+    if (now > enemySpawnAt){
       if (enemies.length < MAX_ENEMIES) spawnEnemy();
       enemySpawnAt = now + ENEMY_BASE_SPAWN + Math.random()*ENEMY_SPAWN_JITTER;
     }
-    if(now > bonusSpawnAt){
+    if (now > bonusSpawnAt){
       spawnBonus();
       bonusSpawnAt = now + 4200 + Math.random()*3000;
     }
@@ -672,37 +706,63 @@ function updateGameplayPlus(dt, ox, oy, dw, dh, bx, by){
   // vieillissement / auto-despawn ennemis
   enemies = enemies.filter(e => (now - (e.bornAt||now)) < ENEMY_LIFETIME*1000);
 
-  // Mouvements des ennemis (rebond, wobble léger pour méduse)
+  // timers joueur
+  if (playerSlowTimer > 0) playerSlowTimer -= dt;
+  if (hitShake > 0)        hitShake = Math.max(0, hitShake - dt * HIT_SHAKE_DECAY);
+
+  // mouvement ennemis (+ fuite)
   const PAD = 0.02;
   for(const e of enemies){
     e.t += dt;
-    e.x += e.vx*dt; e.y += e.vy*dt;
-    if(e.type === "jelly"){ // léger wobble
+
+    // si en fuite, on réduit lentement leur vitesse et on finit par les supprimer
+    if (e.state === "flee"){
+      if (now >= e.fleeUntil){
+        // fuite finie -> on retire l’ennemi
+        e._remove = true;
+      } else {
+        // friction légère en fuite (ils ralentissent un peu)
+        e.vx *= 0.995; e.vy *= 0.995;
+      }
+    } else if (e.type === "jelly"){
+      // wobble léger en mode normal
       e.vx += Math.sin(e.t*1.7)*0.0008;
       e.vy += Math.cos(e.t*1.3)*0.0008;
     }
+
+    e.x += e.vx*dt; e.y += e.vy*dt;
+
+    // rebond bords (ne pas laisser sortir définitivement)
     if(e.x < PAD || e.x > 1-PAD){ e.vx *= -1; e.x = Math.max(PAD, Math.min(1-PAD, e.x)); }
     if(e.y < PAD || e.y > 1-PAD){ e.vy *= -1; e.y = Math.max(PAD, Math.min(1-PAD, e.y)); }
   }
+  // purge des ennemis marqués à retirer
+  enemies = enemies.filter(e => !e._remove);
 
-  // Collisions joueur <-> ennemis (en pixels)
-  const COLLIDE_PX = 36;
-  if(playerSlowTimer > 0) playerSlowTimer -= dt;
-  if(hitShake > 0) hitShake = Math.max(0, hitShake - dt * HIT_SHAKE_DECAY);
-
+  // collisions joueur <-> ennemis
   for(const e of enemies){
+    if (e.state === "flee") continue; // ignoré pendant la fuite
     const ex = ox + e.x*dw, ey = oy + e.y*dh;
     const d  = Math.hypot(bx - ex, by - ey);
     if(d < COLLIDE_PX){
+      // pousse un peu le joueur
       const ang = Math.atan2(by - ey, bx - ex);
       player.x = Math.max(0, Math.min(1, player.x + Math.cos(ang)*0.02));
       player.y = Math.max(0, Math.min(1, player.y + Math.sin(ang)*0.02));
+
+      // compteurs / feedback
       collisionCount++;
-      playerSlowTimer = 1.25;      // ralenti plus court
-      hitShake = Math.min(HIT_SHAKE_MAX, hitShake + 0.6); // démarre/renforce, clamp 2s
+      playerSlowTimer = 1.25; // ralenti court
+      hitShake = Math.min(HIT_SHAKE_MAX, hitShake + 0.6); // clampé max
       failSfx();
-      // écarte un peu l’ennemi pour éviter hit multiples immédiats
-      e.x += Math.cos(ang)*0.06; e.y += Math.sin(ang)*0.06;
+
+      // met l’ennemi en FUIT— il s'éloigne et ne recolle pas
+      const fleeSpeed = 0.38; // fraction largeur / s pendant la fuite
+      const away = Math.atan2( (ey - by), (ex - bx) ); // s’éloigner du joueur
+      e.vx = Math.cos(away) * fleeSpeed;
+      e.vy = Math.sin(away) * fleeSpeed;
+      e.state = "flee";
+      e.fleeUntil = now + 1600 + Math.random()*700; // 1.6s à 2.3s
     }
   }
 
@@ -718,6 +778,8 @@ function updateGameplayPlus(dt, ox, oy, dw, dh, bx, by){
       floatingLabels.push({ text:"Bonus!", x:bpx, y:bpy-16, age:0, life:1.5 });
       bonuses.splice(i,1);
       playerSlowTimer = 0; // annule le ralentissement si actif
+      // petit shake positif court
+      hitShake = Math.min(HIT_SHAKE_MAX, hitShake + 0.2);
     }
   }
 }
@@ -735,7 +797,6 @@ function askQuestionFor(p){
   bdText.textContent  = t.ask( poiInfo(p.key) );
   tarTop.classList.add('show');
 }
-
 function showTarantulaSuccess(p){
   bdTitle.textContent="Tarantula";
   bdText.textContent=t.success(p.name.split(" — ")[0]);
@@ -766,11 +827,21 @@ const MAP_ZOOM = 1.30; // ≈ +30%
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
   ctx.beginPath(); const pts=5,inner=R*0.45;
-  for(let i=0;i<pts*2;i++){const ang=(Math.PI/pts)*i - Math.PI/2; const r=(i%2===0)?R:inner; const x=cx+Math.cos(ang)*r; const y=cy+Math.sin(ang)*r; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);}
+  for(let i=0;i<pts*2;i++){
+    const ang=(Math.PI/pts)*i - Math.PI/2;
+    const r=(i%2===0)?R:inner;
+    const x=cx+Math.cos(ang)*r, y=cy+Math.sin(ang)*r;
+    if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
 
-function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
+function starSVG(fill){
+  const f=fill||"#d26f45";
+  return "data:image/svg+xml;base64,"+btoa(
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`
+  );
+}
 function refreshStars(){
   const n = collected.size;
   scoreEl.textContent = `${n}/10`;
@@ -786,6 +857,13 @@ function refreshStars(){
 function drawEnemy(e, ox, oy, dw, dh){
   const x = ox + e.x*dw, y = oy + e.y*dh;
   ctx.save();
+
+  // transparence quand en fuite (disparition progressive)
+  if (e.state === "flee"){
+    const remain = Math.max(0, e.fleeUntil - performance.now())/700; // ~0..>1
+    ctx.globalAlpha = Math.max(0.12, Math.min(1, remain));
+  }
+
   if(e.type === "jelly"){
     // Méduse minimaliste
     ctx.fillStyle = "rgba(123,200,255,0.85)";
@@ -841,30 +919,33 @@ function drawLabels(dt){
     const lift  = 10 * tprog;
     let baseX = L.x + 10;
     let baseY = (L.y - 10 - lift);
+
     ctx.save();
     ctx.font = "bold 16px system-ui";
     const text = L.text;
     const textW = Math.ceil(ctx.measureText(text).width);
     const boxW = textW + PAD * 2;
     const boxH = LINE_H + PAD * 2;
+
     let bx = baseX;
     let by = baseY - (LINE_H + PAD);
     const anchorX = L.x;
     const anchorY = L.y - lift;
+
     const topLimit = MARGIN;
-    if (by - PAD < topLimit) {
-      by = (L.y + 12) + PAD;
-      baseY = by + LINE_H;
-    }
+    if (by - PAD < topLimit) { by = (L.y + 12) + PAD; baseY = by + LINE_H; }
     if (bx + boxW > W - MARGIN) bx = (W - MARGIN) - boxW;
     if (bx < MARGIN)            bx = MARGIN;
+
     const textX = bx + PAD;
     const textY = baseY;
     const moved = (Math.hypot((bx + boxW/2) - anchorX, (by + boxH/2) - anchorY) > 16);
+
     ctx.globalAlpha = Math.max(0, alpha);
     ctx.shadowColor = "rgba(0,0,0,.15)";
-    ctx.shadowBlur = 6;
-    ctx.shadowOffsetY = 3;
+    ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
+
+    // bulle
     ctx.fillStyle = "rgba(255,255,255,0.95)";
     ctx.strokeStyle = "rgba(0,0,0,0.15)";
     ctx.lineWidth = 1.5;
@@ -880,8 +961,9 @@ function drawLabels(dt){
     ctx.lineTo(bx, by + r);
     ctx.quadraticCurveTo(bx, by, bx + r, by);
     ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    ctx.fill(); ctx.stroke();
+
+    // bec
     if (moved) {
       ctx.beginPath();
       const midX = Math.max(bx + r, Math.min(bx + boxW - r, anchorX));
@@ -894,15 +976,18 @@ function drawLabels(dt){
         ctx.lineTo(midX + ARROW, by + boxH);
         ctx.lineTo(anchorX, anchorY);
       }
-      ctx.closePath();
-      ctx.fill();
+      ctx.closePath(); ctx.fill();
     }
+
+    // texte
     ctx.shadowColor = "transparent";
     ctx.fillStyle = "#0e2b4a";
     ctx.strokeStyle = "rgba(255,255,255,.85)";
     ctx.lineWidth = 3;
     ctx.strokeText(text, textX, textY);
     ctx.fillText(text, textX, textY);
+
+    // trait liaison
     if (moved) {
       ctx.beginPath();
       ctx.strokeStyle = "rgba(14,43,74,.35)";
@@ -935,17 +1020,15 @@ function draw(ts){
 
   const mw=mapImg.naturalWidth||1920, mh=mapImg.naturalHeight||1080;
   const availW=W, availH=Math.max(200, H-UI_BOTTOM-UI_TOP);
-
   const baseScale = Math.min(availW/mw, availH/mh);
   const scale = baseScale * MAP_ZOOM;
-
   const dw=mw*scale, dh=mh*scale;
   const ox=(W-dw)/2;
   const oy=UI_TOP + (availH - dh)/2;
 
   ctx.clearRect(0,0,W,H);
 
-  // Carte / Map
+  // Carte
   if (mapImg.complete && mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
   else { ctx.fillStyle="#bfe2f8"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#0e2b4a"; ctx.font="16px system-ui"; ctx.fillText(t.mapNotLoaded(MAP_URL), ox+14, oy+24); }
 
@@ -964,13 +1047,11 @@ function draw(ts){
     }
   }
 
-  // Chemin — n’apparaît qu’à la fin
+  // Chemin when all found
   if (!finale && collected.size === POIS.length){
     ctx.save();
     ctx.strokeStyle = "#7a4c25";
-    ctx.lineWidth = 4;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.lineJoin = "round";
     ctx.beginPath();
     const first = POIS[0];
     ctx.moveTo(ox + first.x*dw, oy + first.y*dh);
@@ -980,37 +1061,37 @@ function draw(ts){
       const mx=(ax+bx)/2, my=(ay+by)/2 + ((i%2?1:-1)*8);
       ctx.quadraticCurveTo(mx,my,bx,by);
     }
-    ctx.stroke();
-    ctx.restore();
+    ctx.stroke(); ctx.restore();
   }
 
-  // Aracne : calcule position/taille du joueur
+  // Joueur (position/taille)
   const bw = Math.min(160, Math.max(90, dw*player.size));
   const bx = ox + player.x*dw, by = oy + player.y*dh;
 
-  // --- GAMEPLAY+ update & draw (sous le joueur)
+  // gameplay+ sous le joueur
   if(!finale){
     updateGameplayPlus(frameDT, ox, oy, dw, dh, bx, by);
     for(const b of bonuses) drawBonus(b, ox, oy, dw, dh);
     for(const e of enemies) drawEnemy(e, ox, oy, dw, dh);
   }
 
-  // --- Effet “shake” visuel du joueur, clampé
+  // Shake visuel du joueur (clampé)
   let shakeX = 0, shakeY = 0;
   if (hitShake > 0){
-    const a = Math.min(1, hitShake / HIT_SHAKE_MAX); // 0..1
+    const a = Math.min(1, hitShake / HIT_SHAKE_MAX);
     const mag = 6 * a; // amplitude max 6 px
     shakeX = (Math.random()*2-1) * mag;
     shakeY = (Math.random()*2-1) * mag;
   }
 
-  // Puis on dessine le joueur par-dessus
+  // joueur par-dessus
   if(!finale){
-    if (birdImg.complete && birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2+shakeX, by-bw/2+shakeY, bw, bw);
+    if (birdImg.complete && birdImg.naturalWidth)
+      ctx.drawImage(birdImg, bx-bw/2+shakeX, by-bw/2+shakeY, bw, bw);
     else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx+shakeX,by+shakeY,bw*0.35,0,Math.PI*2); ctx.fill(); }
   }
 
-  // Logique de succès / échec — avec ordre de questions aléatoire
+  // Succès/échec et progression
   if(!finale && currentIdx < QUEST.length){
     const p = QUEST[currentIdx];
     const px = ox + p.x * dw, py = oy + p.y * dh;
@@ -1056,11 +1137,11 @@ function draw(ts){
   }
 
   // Feux + Danse + Labels
-  if(finale || fireworks.length>0){ drawFireworks(); }
-  if(!finale){ drawLabels(frameDT); }
+  if(finale || fireworks.length>0) drawFireworks();
+  if(!finale) drawLabels(frameDT);
   if(finale){
-    drawDancer(birdImg,   danceBird.x,   danceBird.y,   bw*danceBird.scale,      danceBird.angle);
-    drawDancer(spiderImg, danceSpider.x, danceSpider.y, bw*danceSpider.scale*0.9, danceSpider.angle);
+    drawDancer(birdImg,   danceBird.x,   danceBird.y,   bw*danceBird.scale,        danceBird.angle);
+    drawDancer(spiderImg, danceSpider.x, danceSpider.y, bw*danceSpider.scale*0.9,  danceSpider.angle);
   }
 }
 
@@ -1078,7 +1159,8 @@ function loop(ts){ if(!window.running) return; draw(ts); requestAnimationFrame(l
 ========================================================= */
 function beginFinale(bx,by,lastPx,lastPy){
   finale=true;
-  // Score simple : étoiles *100 + bonus *25 - collisions *15
+
+  // Score : étoiles *100 + bonus *25 - collisions *15
   const stars = collected.size;
   const score = stars*100 + bonusCount*25 - collisionCount*15;
   let rank;
@@ -1088,9 +1170,11 @@ function beginFinale(bx,by,lastPx,lastPy){
 
   setTimeout(()=>{
     bdTitle.textContent = "Tarantula";
-    bdText.textContent  = `🏁 Score ${score} — ${rank}\n(⭐ ${stars}, 🎁 ${bonusCount}, 💥 ${collisionCount})`;
+    // >>> phrase demandée
+    bdText.textContent  = `Voilà ton score final, Aracne : ${score} — ${rank}\n(⭐ ${stars}, 🎁 ${bonusCount}, 💥 ${collisionCount})`;
     tarTop.classList.add('show');
   }, 900);
+
   touch.classList.remove('show');
   tarTop.classList.add('show');
 
@@ -1098,8 +1182,7 @@ function beginFinale(bx,by,lastPx,lastPy){
   danceBird.scale=1.0; danceSpider.scale=1.0; dancePhase=0; finaleTimer=0; finaleZoom=1.0;
 
   if(loopTimer){ clearTimeout(loopTimer); loopTimer=null; }
-  musicOn = false;
-  musicBtn.textContent = t.musicOff;
+  musicOn = false; musicBtn.textContent = t.musicOff;
 
   playFinaleLong();
   triggerFireworksShow();
@@ -1126,6 +1209,7 @@ function resetGame(hideOverlay){
   collisionCount = 0; bonusCount = 0; playerSlowTimer = 0;
   hitShake = 0;
 
+  // première question
   askQuestionFor(QUEST[currentIdx]);
 
   if(musicOn){ if(loopTimer){ clearTimeout(loopTimer); } playPhrase(); }
@@ -1159,7 +1243,6 @@ function drawSplash(force){
     const scale = baseScale * MAP_ZOOM;
     const dw=mw*scale, dh=mh*scale;
     const ox=(W-dw)/2, oy=UI_TOP + (availH - dh)/2;
-
     ctx.clearRect(0,0,W,H);
     ctx.drawImage(mapImg,ox,oy,dw,dh);
   } else if (force){
@@ -1171,7 +1254,7 @@ function drawSplash(force){
 }
 
 /* Première devinette au chargement (overlay visible) */
-askQuestionFor(POIS[0]); // placeholder visuel avant start (texte sur la bulle)
+askQuestionFor(POIS[0]); // placeholder visuel avant start
 </script>
 </body>
-</html>
+</html> 
