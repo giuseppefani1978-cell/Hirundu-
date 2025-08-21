@@ -550,21 +550,128 @@ function refreshStars(){
 refreshStars();
 
 function drawLabels(dt){
-  for(let i=floatingLabels.length-1;i>=0;i--){
-    const L=floatingLabels[i];
+  const MARGIN = 8;           // marge intérieure aux bords de l'écran
+  const PAD    = 6;           // padding de la bulle
+  const LINE_H = 20;          // hauteur approx du texte (16px bold)
+  const ARROW  = 8;           // petite flèche/bec de bulle
+
+  for (let i = floatingLabels.length - 1; i >= 0; i--) {
+    const L = floatingLabels[i];
     L.age += dt;
     const tprog = L.age / L.life;
-    if(tprog>=1){ floatingLabels.splice(i,1); continue; }
+    if (tprog >= 1) { floatingLabels.splice(i, 1); continue; }
+
+    // Fade + légère montée
     const alpha = 1 - tprog;
-    const lift = 10 * tprog;
+    const lift  = 10 * tprog;
+
+    // Position “naturelle” (au-dessus, à droite du point)
+    let baseX = L.x + 10;
+    let baseY = (L.y - 10 - lift);
+
     ctx.save();
-    ctx.globalAlpha = Math.max(0,alpha);
-    ctx.fillStyle = "#0e2b4a";
     ctx.font = "bold 16px system-ui";
+    const text = L.text;
+    const textW = Math.ceil(ctx.measureText(text).width);
+    const boxW = textW + PAD * 2;
+    const boxH = LINE_H + PAD * 2;
+
+    // Bulle initialement au-dessus
+    let bx = baseX;
+    let by = baseY - (LINE_H + PAD); // y est la baseline; on monte la bulle
+
+    // Garde les coordonnées d'origine pour le trait de liaison
+    const anchorX = L.x;
+    const anchorY = L.y - lift;
+
+    // ---- Ajustements bords (clamp + flip bas si trop haut) ----
+    // Si la bulle dépasse en haut, on la met en dessous du point
+    const topLimit = MARGIN; // tu peux utiliser UI_TOP + MARGIN si tu veux éviter d'empiéter sur la HUD
+    if (by - PAD < topLimit) {
+      // place sous le point, avec un petit espace pour le bec
+      by = (L.y + 12) + PAD;      // top de la bulle
+      baseY = by + LINE_H;        // baseline en bas de la bulle
+    }
+
+    // clamp horizontal
+    if (bx + boxW > W - MARGIN) bx = (W - MARGIN) - boxW;
+    if (bx < MARGIN)            bx = MARGIN;
+
+    // recalcul baseline si on a clampé bx (le texte suit la bulle)
+    const textX = bx + PAD;
+    const textY = baseY;
+
+    // ---- Dessin de la bulle + trait de liaison si décalage notable ----
+    const moved = (Math.hypot((bx + boxW/2) - anchorX, (by + boxH/2) - anchorY) > 16);
+
+    ctx.globalAlpha = Math.max(0, alpha);
+
+    // Ombre légère
+    ctx.shadowColor = "rgba(0,0,0,.15)";
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 3;
+
+    // Bulle (fond clair)
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.strokeStyle = "rgba(0,0,0,0.15)";
+    ctx.lineWidth = 1.5;
+
+    // arrondis
+    const r = 8;
+    ctx.beginPath();
+    ctx.moveTo(bx + r, by);
+    ctx.lineTo(bx + boxW - r, by);
+    ctx.quadraticCurveTo(bx + boxW, by, bx + boxW, by + r);
+    ctx.lineTo(bx + boxW, by + boxH - r);
+    ctx.quadraticCurveTo(bx + boxW, by + boxH, bx + boxW - r, by + boxH);
+    ctx.lineTo(bx + r, by + boxH);
+    ctx.quadraticCurveTo(bx, by + boxH, bx, by + boxH - r);
+    ctx.lineTo(bx, by + r);
+    ctx.quadraticCurveTo(bx, by, bx + r, by);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Bec (petit triangle vers le point d'ancrage)
+    if (moved) {
+      ctx.beginPath();
+      const midX = Math.max(bx + r, Math.min(bx + boxW - r, anchorX));
+      if (by > anchorY) {
+        // bulle en dessous du point -> bec vers le haut
+        ctx.moveTo(midX - ARROW, by);
+        ctx.lineTo(midX + ARROW, by);
+        ctx.lineTo(anchorX, anchorY);
+      } else {
+        // bulle au-dessus du point -> bec vers le bas
+        ctx.moveTo(midX - ARROW, by + boxH);
+        ctx.lineTo(midX + ARROW, by + boxH);
+        ctx.lineTo(anchorX, anchorY);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Texte
+    ctx.shadowColor = "transparent"; // pas d'ombre sur le texte
+    ctx.fillStyle = "#0e2b4a";
     ctx.strokeStyle = "rgba(255,255,255,.85)";
-    ctx.lineWidth = 4;
-    ctx.strokeText(L.text, L.x+10, L.y - 10 - lift);
-    ctx.fillText(L.text, L.x+10, L.y - 10 - lift);
+    ctx.lineWidth = 3;
+    ctx.strokeText(text, textX, textY);
+    ctx.fillText(text, textX, textY);
+
+    // Trait de liaison additionnel (fin) si moved
+    if (moved) {
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(14,43,74,.35)";
+      ctx.lineWidth = 1;
+      ctx.moveTo(anchorX, anchorY);
+      // vers le bord le plus proche de la bulle
+      const targetX = Math.max(bx, Math.min(bx + boxW, anchorX));
+      const targetY = (by > anchorY) ? by : (by + boxH);
+      ctx.lineTo(targetX, targetY);
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 }
