@@ -348,16 +348,21 @@ window.addEventListener('error',e=>debug(e.message));
 window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message?e.reason.message:e.reason));
 
 /* =========================================================
-   ASSETS
+   ASSETS — corrigé
 ========================================================= */
 const MAP_URL       = "assets/salento-map.PNG" + (window.APP_Q || "");
-const BIRD_URL      = "assets/aracne .PNG"      + (window.APP_Q || "");       /* <-- espace retiré */
-const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");       /* <-- 
+const BIRD_URL      = "assets/aracne .PNG"      + (window.APP_Q || "");     // ⚠️ pas d'espace avant .PNG
+const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");     // ⚠️ pas d'espace et commentaire fermé !
 
-// Nouveaux ennemis
-const crowImg    = new Image(); crowImg.src      = "assets/crow.PNG";
+/* Sprites ennemis */
+const crowImg  = new Image();
+crowImg.src    = "assets/crow.PNG" + (window.APP_Q || "");
+crowImg.onerror = () => assetFail('Crow', crowImg.src);
 
-const jellyImg   = new Image(); jellyImg.src     = "assets/jelly.PNG";
+const jellyImg = new Image();
+jellyImg.src   = "assets/jelly.PNG" + (window.APP_Q || "");
+jellyImg.onerror = () => assetFail('Jelly', jellyImg.src);
+
 
 /* ===== Canvas & UI refs ===== */
 const canvas = document.getElementById('c');
