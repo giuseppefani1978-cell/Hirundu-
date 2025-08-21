@@ -583,17 +583,17 @@ let collisionCount = 0, bonusCount = 0;
 let playerSlowTimer = 0; // ralentissement temporaire après collision
 
 /* ---- CONFIG équilibrage ---- */
-const MAX_ENEMIES        = 4;      // <= moins d’ennemis à l’écran
-const ENEMY_LIFETIME     = 14;     // s, auto-despawn pour limiter la densité
+const MAX_ENEMIES        = 4;      // moins d’ennemis
+const ENEMY_LIFETIME     = 14;     // s
 const ENEMY_BASE_SPAWN   = 4200;   // ms
 const ENEMY_SPAWN_JITTER = 2600;   // ms
 const BONUS_LIFETIME     = 4;      // s
 const COLLIDE_PX         = 36;     // rayon collision px
 
-/* ---- SHAKE joueur (visuel) ---- */
-let hitShake = 0;                      // temps restant de shake (s)
-const HIT_SHAKE_MAX   = 2.4;           // clamp max ~2.4s
-const HIT_SHAKE_DECAY = 1.0;           // s^-1 (retire 1s de shake par s)
+/* ---- SHAKE joueur ---- */
+let hitShake = 0;                      // temps restant
+const HIT_SHAKE_MAX   = 2.4;           // max ~2.4s
+const HIT_SHAKE_DECAY = 1.0;           // décrément 1s/s
 
 /* vitesse effective du joueur (ralenti si touché) */
 function currentSpeed(){
@@ -752,17 +752,17 @@ function updateGameplayPlus(dt, ox, oy, dw, dh, bx, by){
 
       // compteurs / feedback
       collisionCount++;
-      playerSlowTimer = 1.25; // ralenti court
-      hitShake = Math.min(HIT_SHAKE_MAX, hitShake + 0.6); // clampé max
+      playerSlowTimer = 1.25;
+      hitShake = Math.min(HIT_SHAKE_MAX, hitShake + 0.6); // vibration limitée
       failSfx();
 
-      // met l’ennemi en FUIT— il s'éloigne et ne recolle pas
-      const fleeSpeed = 0.38; // fraction largeur / s pendant la fuite
-      const away = Math.atan2( (ey - by), (ex - bx) ); // s’éloigner du joueur
+      // ennemi passe en fuite
+      const fleeSpeed = 0.38;
+      const away = Math.atan2((ey - by), (ex - bx));
       e.vx = Math.cos(away) * fleeSpeed;
       e.vy = Math.sin(away) * fleeSpeed;
       e.state = "flee";
-      e.fleeUntil = now + 1600 + Math.random()*700; // 1.6s à 2.3s
+      e.fleeUntil = now + 1600 + Math.random()*700;
     }
   }
 
@@ -1171,7 +1171,7 @@ function beginFinale(bx,by,lastPx,lastPy){
   setTimeout(()=>{
     bdTitle.textContent = "Tarantula";
     // >>> phrase demandée
-    bdText.textContent  = `Voilà ton score final, Aracne : ${score} — ${rank}\n(⭐ ${stars}, 🎁 ${bonusCount}, 💥 ${collisionCount})`;
+    bdText.textContent = `Final Score, Aracne : ${score} — ${rank}\n(⭐ ${stars}, 🎁 ${bonusCount}, 💥 ${collisionCount})`;
     tarTop.classList.add('show');
   }, 900);
 
