@@ -600,6 +600,7 @@ function spawnEnemy(){
   const type = (Math.random() < 0.5) ? types[0] : types[1];
   const x = Math.random()*0.9 + 0.05;
   const y = Math.random()*0.9 + 0.05;
+  const maxEnemies = 4; // limite
   const speed = (type === "jelly" ? 0.06 : 0.10);     // fraction de largeur / sec
   const dir = Math.random() * Math.PI * 2;
   enemies.push({
@@ -763,6 +764,11 @@ function refreshStars(){
 function drawEnemy(e, ox, oy, dw, dh){
   const x = ox + e.x*dw, y = oy + e.y*dh;
   ctx.save();
+  const maxEnemies = 4; // limite
+if (enemies.length < maxEnemies && Math.random() < 0.02) {
+   enemies.push(createEnemy());
+}
+
   if(e.type === "jelly"){
     // Méduse minimaliste
     ctx.fillStyle = "rgba(123,200,255,0.85)";
