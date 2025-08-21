@@ -810,6 +810,35 @@ function drawStarfish(cx,cy,R){
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
 
+function drawEnemy(e, ox, oy, dw, dh) {
+  const ex = ox + e.x * dw;
+  const ey = oy + e.y * dh;
+  const size = 42;
+
+  if (e.type === "jellyfish") {
+    if (jellyfishImg.complete && jellyfishImg.naturalWidth) {
+      ctx.drawImage(jellyfishImg, ex - size/2, ey - size/2, size, size);
+    } else {
+      ctx.fillStyle = "purple";
+      ctx.beginPath();
+      ctx.arc(ex, ey, size/2.5, 0, Math.PI*2);
+      ctx.fill();
+    }
+  } else if (e.type === "crow") {
+    if (crowImg.complete && crowImg.naturalWidth) {
+      ctx.drawImage(crowImg, ex - size/2, ey - size/2, size, size);
+    } else {
+      ctx.fillStyle = "black";
+      ctx.beginPath();
+      ctx.moveTo(ex - size/2, ey);
+      ctx.lineTo(ex, ey - size/2);
+      ctx.lineTo(ex + size/2, ey);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+  
 function starSVG(fill){
   const f=fill||"#d26f45";
   return "data:image/svg+xml;base64,"+btoa(
