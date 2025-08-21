@@ -757,7 +757,10 @@ function refreshStars(){
     im.className='star';
     im.src=starSVG(i<n?"#d26f45":"#f0c9a7");
     starsEl.appendChild(im);
-  }
+  
+  } // <-- ferme refreshStars
+// (optionnel) ; après la fonction si tu aimes
+// refreshStars;
 function drawEnemy(e, ox, oy, dw, dh){
   const x = ox + e.x*dw, y = oy + e.y*dh;
   ctx.save();
@@ -999,21 +1002,22 @@ function draw(ts){
     ctx.stroke();
     ctx.restore();
   }
+// Aracne (calcul taille/position du joueur d’abord)
+const bw = Math.min(160, Math.max(90, dw*player.size));
+const bx = ox + player.x*dw, by = oy + player.y*dh;
+
 // --- GAMEPLAY+ update & draw (avant le joueur pour passer dessous)
 if(!finale){
   updateGameplayPlus(frameDT, ox, oy, dw, dh, bx, by);
-  // Dessin bonus sous le joueur
   for(const b of bonuses) drawBonus(b, ox, oy, dw, dh);
-  // Dessin ennemis sous le joueur
   for(const e of enemies) drawEnemy(e, ox, oy, dw, dh);
 }
-  // Aracne
-  const bw=Math.min(160,Math.max(90,dw*player.size));
-  const bx=ox+player.x*dw, by=oy+player.y*dh;
-  if(!finale){
-    if (birdImg.complete && birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2, by-bw/2, bw, bw);
-    else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx,by,bw*0.35,0,Math.PI*2); ctx.fill(); }
-  }
+
+// Puis seulement on dessine le joueur pour qu’il passe au-dessus
+if(!finale){
+  if (birdImg.complete && birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2, by-bw/2, bw, bw);
+  else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx,by,bw*0.35,0,Math.PI*2); ctx.fill(); }
+}
 
   // Logique de succès / échec — avec ordre de questions aléatoire
 if(!finale && currentIdx < QUEST.length){
