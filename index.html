@@ -255,6 +255,16 @@ const I18N = {
     assetMissing: (who,url)=>`• ${who} missing: "${url}"`
   }
 };
+// Renvoie le nom i18n du POI (fallback sur FR puis sur la clé)
+function poiName(key){
+  try{
+    if (window.POI_TEXT && POI_TEXT[LANG] && POI_TEXT[LANG][key] && POI_TEXT[LANG][key].name)
+      return POI_TEXT[LANG][key].name;
+    if (window.POI_TEXT && POI_TEXT.fr && POI_TEXT.fr[key] && POI_TEXT.fr[key].name)
+      return POI_TEXT.fr[key].name;
+  }catch(e){}
+  return key;
+}
 
 /* Map d’alias et normalisation des codes (gère tirets/underscores/casse) */
 const SUPPORTED = Object.keys(I18N); // ["fr","it","es","en"]
@@ -415,20 +425,83 @@ const SHIFT_COAST = { x:0.045, y:0.026 };
 const SHIFT_EAST  = 0.04;
 
 const POIS = [
-  { key:"otranto",       name:"Otranto — Cathédrale",          x:0.86+SHIFT_EAST+SHIFT_COAST.x,          y:0.48+SHIFT_COAST.y,          info:"la cathédrale aux mosaïques médiévales et la chapelle des 800 martyrs" },
-  { key:"portobadisco",  name:"Porto Badisco — Calanque",      x:0.80+SHIFT_EAST+SHIFT_COAST.x,          y:0.56+SHIFT_COAST.y,          info:"la grande calanque aux eaux turquoises entourée de falaises" },
-  { key:"santacesarea",  name:"Santa Cesarea Terme",           x:0.74+SHIFT_EAST+SHIFT_COAST.x+0.010,    y:0.60+SHIFT_COAST.y+0.008,    info:"les thermes soufrés et la Villa Sticchi en bord de mer" },
-  { key:"castro",        name:"Castro — Castrum Minervae",     x:0.72+SHIFT_EAST+SHIFT_COAST.x+0.012,    y:0.65+SHIFT_COAST.y+0.008,    info:"la grotte Zinzulusa et le souvenir du temple d’Athéna" },
-  { key:"ciolo",         name:"Il Ciolo",                      x:0.66+SHIFT_EAST+SHIFT_COAST.x+0.070,    y:0.78+SHIFT_COAST.y+0.006,    info:"le petit fjord avec le grand pont routier" },
-  { key:"leuca",         name:"Santa Maria di Leuca",          x:0.64+SHIFT_COAST.x+0.1,                 y:0.90+SHIFT_COAST.y,          info:"le phare très haut et la cascade monumentale du Finibus Terrae" },
-  { key:"gallipoli",     name:"Gallipoli",                     x:0.27,                                  y:0.62,                         info:"la vieille ville bâtie sur un îlot relié par un pont" },
-  { key:"portocesareo",  name:"Porto Cesareo",                 x:0.22,                                  y:0.46,                         info:"les plages claires et la réserve marine" },
-  { key:"nardo",         name:"Nardò",                         x:0.38,                                  y:0.50,                         info:"le centre baroque et Porto Selvaggio tout proche" },
-  { key:"lecce",         name:"Lecce",                         x:0.53,                                  y:0.28,                         info:"le baroque en pietra leccese, Santa Croce et le Duomo" }
+  { key:"otranto",       x:0.86+SHIFT_EAST+SHIFT_COAST.x,          y:0.48+SHIFT_COAST.y,          
+  { key:"portobadisco",  x:0.80+SHIFT_EAST+SHIFT_COAST.x,          y:0.56+SHIFT_COAST.y,          
+  { key:"santacesarea",  x:0.74+SHIFT_EAST+SHIFT_COAST.x+0.010,    y:0.60+SHIFT_COAST.y+0.008,    
+  { key:"castro",        x:0.72+SHIFT_EAST+SHIFT_COAST.x+0.012,    y:0.65+SHIFT_COAST.y+0.008,    
+  { key:"ciolo",         x:0.66+SHIFT_EAST+SHIFT_COAST.x+0.070,    y:0.78+SHIFT_COAST.y+0.006,    
+  { key:"leuca",         x:0.64+SHIFT_COAST.x+0.1,                 y:0.90+SHIFT_COAST.y,          
+  { key:"gallipoli",     x:0.27,                                   y:0.62,                        
+  { key:"portocesareo",  x:0.22,                                   y:0.46,                        
+  { key:"nardo",         x:0.38,                                   y:0.50,                        
+  { key:"lecce",         x:0.53,                                   y:0.28,                        
 ];
-
 const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 };
 let collected= new Set();
+  
+/* =========================================================
+   Textes POI multi-langues (name + info)
+========================================================= */
+const POI_TEXT = {
+  fr: {
+    otranto:      { name:"Otranto — Cathédrale",            info:"la cathédrale aux mosaïques médiévales et la chapelle des 800 martyrs" },
+    portobadisco: { name:"Porto Badisco — Calanque",        info:"la grande calanque aux eaux turquoises entourée de falaises" },
+    santacesarea: { name:"Santa Cesarea Terme",             info:"les thermes soufrés et la Villa Sticchi en bord de mer" },
+    castro:       { name:"Castro — Castrum Minervae",       info:"la grotte Zinzulusa et le souvenir du temple d’Athéna" },
+    ciolo:        { name:"Il Ciolo",                         info:"le petit fjord avec le grand pont routier" },
+    leuca:        { name:"Santa Maria di Leuca",             info:"le phare très haut et la cascade monumentale du Finibus Terrae" },
+    gallipoli:    { name:"Gallipoli",                        info:"la vieille ville bâtie sur un îlot relié par un pont" },
+    portocesareo: { name:"Porto Cesareo",                    info:"les plages claires et la réserve marine" },
+    nardo:        { name:"Nardò",                            info:"le centre baroque et Porto Selvaggio tout proche" },
+    lecce:        { name:"Lecce",                            info:"le baroque en pietra leccese, Santa Croce et le Duomo" }
+  },
+  en: {
+    otranto:      { name:"Otranto — Cathedral",              info:"the cathedral with medieval mosaics and the Chapel of the 800 Martyrs" },
+    portobadisco: { name:"Porto Badisco — Inlet",            info:"the large turquoise cove surrounded by cliffs" },
+    santacesarea: { name:"Santa Cesarea Terme",              info:"the sulfur baths and seaside Villa Sticchi" },
+    castro:       { name:"Castro — Castrum Minervae",        info:"the Zinzulusa cave and the memory of Athena’s temple" },
+    ciolo:        { name:"Il Ciolo",                         info:"the tiny fjord with the high road bridge" },
+    leuca:        { name:"Santa Maria di Leuca",             info:"the tall lighthouse and the monumental Finibus Terrae cascade" },
+    gallipoli:    { name:"Gallipoli",                        info:"the old town on an islet linked by a bridge" },
+    portocesareo: { name:"Porto Cesareo",                    info:"clear beaches and the marine reserve" },
+    nardo:        { name:"Nardò",                            info:"the baroque center and nearby Porto Selvaggio" },
+    lecce:        { name:"Lecce",                            info:"baroque in pietra leccese, Santa Croce and the Duomo" }
+  },
+  it: {
+    otranto:      { name:"Otranto — Cattedrale",             info:"la cattedrale con i mosaici medievali e la Cappella dei 800 Martiri" },
+    portobadisco: { name:"Porto Badisco — Cala",             info:"la grande cala turchese circondata da scogliere" },
+    santacesarea: { name:"Santa Cesarea Terme",              info:"le terme sulfuree e la Villa Sticchi sul mare" },
+    castro:       { name:"Castro — Castrum Minervae",        info:"la grotta Zinzulusa e il ricordo del tempio di Atena" },
+    ciolo:        { name:"Il Ciolo",                         info:"il piccolo fiordo con l’alto ponte stradale" },
+    leuca:        { name:"Santa Maria di Leuca",             info:"l’altissimo faro e la cascata monumentale del Finibus Terrae" },
+    gallipoli:    { name:"Gallipoli",                        info:"il centro storico su un isolotto collegato da un ponte" },
+    portocesareo: { name:"Porto Cesareo",                    info:"spiagge chiare e l’area marina protetta" },
+    nardo:        { name:"Nardò",                            info:"il centro barocco e Porto Selvaggio vicino" },
+    lecce:        { name:"Lecce",                            info:"barocco in pietra leccese, Santa Croce e il Duomo" }
+  },
+  es: {
+    otranto:      { name:"Otranto — Catedral",               info:"la catedral con mosaicos medievales y la Capilla de los 800 Mártires" },
+    portobadisco: { name:"Porto Badisco — Cala",             info:"la gran cala turquesa rodeada de acantilados" },
+    santacesarea: { name:"Santa Cesarea Terme",              info:"los baños sulfurosos y la Villa Sticchi junto al mar" },
+    castro:       { name:"Castro — Castrum Minervae",        info:"la cueva Zinzulusa y el recuerdo del templo de Atenea" },
+    ciolo:        { name:"Il Ciolo",                         info:"el pequeño fiordo con el alto puente de carretera" },
+    leuca:        { name:"Santa Maria di Leuca",             info:"el faro altísimo y la cascada monumental del Finibus Terrae" },
+    gallipoli:    { name:"Gallipoli",                        info:"el casco antiguo en un islote unido por un puente" },
+    portocesareo: { name:"Porto Cesareo",                    info:"playas claras y la reserva marina" },
+    nardo:        { name:"Nardò",                            info:"el centro barroco y el cercano Porto Selvaggio" },
+    lecce:        { name:"Lecce",                            info:"barroco en pietra leccese, Santa Croce y el Duomo" }
+  }
+};
+
+/* Helpers pour récupérer un texte localisé avec fallback FR */
+function poiPack(key){
+  const pack = POI_TEXT[LANG] || POI_TEXT.en;
+  const fr   = POI_TEXT.fr;
+  return (pack && pack[key]) || (fr && fr[key]) || { name:key, info:key };
+}
+function poiName(key){ return poiPack(key).name; }
+function poiInfo(key){ return poiPack(key).info || poiPack(key).name; }
+
 /* L’ordre de questions aléatoire à chaque partie */
 let QUEST = [];
 let currentIdx = 0;
@@ -543,11 +616,12 @@ function asQuestionFromInfo(info){
   return t.ask(s);
 }
 function askQuestionFor(p){
-  if(!p){ return; }
-  bdTitle.textContent="Tarantula";
-  bdText.textContent=asQuestionFromInfo(p.info);
+  if(!p) return;
+  bdTitle.textContent = "Tarantula";
+  bdText.textContent  = t.ask( poiInfo(p.key) ); // <— info localisée
   tarTop.classList.add('show');
 }
+
 function showTarantulaSuccess(p){
   bdTitle.textContent="Tarantula";
   bdText.textContent=t.success(p.name.split(" — ")[0]);
@@ -801,47 +875,54 @@ function draw(ts){
   }
 
   // Logique de succès / échec — avec ordre de questions aléatoire
-  if(!finale && currentIdx < QUEST.length){
-    const p=QUEST[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
-    const onTarget = Math.hypot(bx-px,by-py)<44;
+if(!finale && currentIdx < QUEST.length){
+  const p = QUEST[currentIdx];
+  const px = ox + p.x * dw, py = oy + p.y * dh;
+  const onTarget = Math.hypot(bx - px, by - py) < 44;
 
-    if(onTarget && !inputLocked){
-      inputLocked = true;
-      collected.add(p.key); refreshStars();
-      starEmphasis();
-      showTarantulaSuccess(p);
+  if(onTarget && !inputLocked){
+    inputLocked = true;
+    collected.add(p.key);
+    refreshStars();
+    starEmphasis();
 
-      // Label éphémère
-      floatingLabels.push({ text: p.name.split(" — ")[0], x:px, y:py-22, age:0, life:2.0 });
+    // ✅ Succès: utilise la version i18n du nom
+    const nameShort = poiName(p.key);
+    bdTitle.textContent = "Tarantula";
+    bdText.textContent  = t.success(nameShort);
+    tarTop.classList.add('show');
 
-      currentIdx++;
+    // Label éphémère avec le nom i18n
+    floatingLabels.push({ text: nameShort, x: px, y: py - 22, age: 0, life: 2.0 });
 
-      if(currentIdx===QUEST.length){
-        // tout trouvé : on n’affiche le parcours qu’à la prochaine frame (déjà gérée)
-        setTimeout(()=>{
-          beginFinale(bx,by, ox+POIS[POIS.length-1].x*dw, oy+POIS[POIS.length-1].y*dh);
-          replayBtn.style.display='inline-block';
-          inputLocked = false;
-        }, 1200);
-      }else{
-        // attend 2s puis pose la prochaine question (random suivante)
-        setTimeout(()=>{
-          askQuestionFor(QUEST[currentIdx]);
-          inputLocked = false;
-        }, 2000);
-      }
-    }else if(!onTarget){
-      const now = performance.now();
-      if(now - lastFailAt > FAIL_COOLDOWN){
-        // feedback “mauvais POI” si on tombe sur un autre point non-encore validé
-        for(const q of POIS){
-          if(q.key===p.key || collected.has(q.key)) continue;
-          const qx=ox+q.x*dw, qy=oy+q.y*dh;
-          if(Math.hypot(bx-qx,by-qy)<44){ failSfx(); lastFailAt = now; break; }
-        }
+    currentIdx++;
+
+    if(currentIdx === QUEST.length){
+      // tout trouvé : la logique de tracé global est gérée ailleurs
+      setTimeout(()=>{
+        beginFinale(bx, by, ox + POIS[POIS.length - 1].x * dw, oy + POIS[POIS.length - 1].y * dh);
+        replayBtn.style.display = 'inline-block';
+        inputLocked = false;
+      }, 1200);
+    }else{
+      // attend 2s puis pose la prochaine question (ordre aléatoire dans QUEST)
+      setTimeout(()=>{
+        askQuestionFor(QUEST[currentIdx]);
+        inputLocked = false;
+      }, 2000);
+    }
+  }else if(!onTarget){
+    const now = performance.now();
+    if(now - lastFailAt > FAIL_COOLDOWN){
+      // feedback si on touche un autre POI non validé
+      for(const q of POIS){
+        if(q.key === p.key || collected.has(q.key)) continue;
+        const qx = ox + q.x * dw, qy = oy + q.y * dh;
+        if(Math.hypot(bx - qx, by - qy) < 44){ failSfx(); lastFailAt = now; break; }
       }
     }
   }
+}
 
   // Feux + Danse + Labels
   if(finale || fireworks.length>0){ drawFireworks(); }
