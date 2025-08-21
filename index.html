@@ -881,36 +881,6 @@ function refreshStars(){
     starsEl.appendChild(im);
   }
 }
-
-function drawEnemies() {
-  for (const e of enemies) {
-    const ex = e.x * W, ey = e.y * H;
-    const size = 48; // taille des sprites (ajuste selon ton PNG)
-
-    if (e.type === "jellyfish") {
-      if (jellyfishImg.complete) {
-        ctx.drawImage(jellyfishImg, ex - size / 2, ey - size / 2, size, size);
-      } else {
-        ctx.fillStyle = "purple";
-        ctx.beginPath();
-        ctx.arc(ex, ey, size / 2.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    } else if (e.type === "crow") {
-      if (crowImg.complete) {
-        ctx.drawImage(crowImg, ex - size / 2, ey - size / 2, size, size);
-      } else {
-        ctx.fillStyle = "black";
-        ctx.beginPath();
-        ctx.moveTo(ex - size / 2, ey);
-        ctx.lineTo(ex, ey - size / 2);
-        ctx.lineTo(ex + size / 2, ey);
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
-  }
-}
   
 function drawBonus(b, ox, oy, dw, dh){
   const x = ox + b.x*dw, y = oy + b.y*dh;
