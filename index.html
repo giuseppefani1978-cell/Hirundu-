@@ -195,13 +195,12 @@
 
 <script>
 /* =========================================================
-   I18N — détection & libellés
+   I18N — dictionnaires + détection robuste
 ========================================================= */
 const I18N = {
   fr: {
     title: "Le Vol d’Aracne",
     subtitle: "Collecte les 10 étoiles et découvre 10 lieux secrets du Salento.",
-    inspired: "Inspiré par le fameux roman",
     start: "Démarrer",
     hudStars: "Étoiles",
     musicOn: "⏹️ Musique",
@@ -216,7 +215,6 @@ const I18N = {
   it: {
     title: "Il Volo di Aracne",
     subtitle: "Raccogli le 10 stelle e scopri 10 luoghi segreti del Salento.",
-    inspired: "Ispirato al celebre romanzo",
     start: "Avvia",
     hudStars: "Stelle",
     musicOn: "⏹️ Musica",
@@ -231,7 +229,6 @@ const I18N = {
   es: {
     title: "El Vuelo de Aracne",
     subtitle: "Recoge las 10 estrellas y descubre 10 lugares secretos del Salento.",
-    inspired: "Inspirado en la famosa novela",
     start: "Empezar",
     hudStars: "Estrellas",
     musicOn: "⏹️ Música",
@@ -246,7 +243,6 @@ const I18N = {
   en: {
     title: "Aracne’s Flight",
     subtitle: "Collect 10 stars and discover 10 secret places in Salento.",
-    inspired: "Inspired by the famous novel",
     start: "Start",
     hudStars: "Stars",
     musicOn: "⏹️ Music",
@@ -259,27 +255,78 @@ const I18N = {
     assetMissing: (who,url)=>`• ${who} missing: "${url}"`
   }
 };
-function pickLang(){
-  const raw=(navigator.language||navigator.userLanguage||"fr").toLowerCase();
-  if(raw.startsWith("fr")) return "fr";
-  if(raw.startsWith("it")) return "it";
-  if(raw.startsWith("es")) return "es";
-  if(raw.startsWith("en")) return "en";
-  if(["be","ch","ca","lu","mc"].some(cc=>raw.endsWith("-"+cc))) return "fr";
-  if(["us","gb","au","nz","ie"].some(cc=>raw.endsWith("-"+cc))) return "en";
-  return "en";
+
+/* Map d’alias et normalisation des codes (gère tirets/underscores/casse) */
+const SUPPORTED = Object.keys(I18N); // ["fr","it","es","en"]
+const LOCALE_ALIASES = {
+  "fr-ca":"fr","fr-ch":"fr","fr-be":"fr","fr-lu":"fr","fr-mc":"fr",
+  "it-ch":"it",
+  "es-419":"es","es-mx":"es","es-ar":"es","es-cl":"es","es-co":"es","es-pe":"es","es-es":"es",
+  "en-gb":"en","en-us":"en","en-au":"en","en-ca":"en","en-nz":"en","en-ie":"en","en-in":"en"
+};
+
+/* Lecture d’un override côté URL/localStorage (ex: ?lang=fr) */
+function getLangOverride(){
+  try{
+    const url = new URL(location.href);
+    const p = (url.searchParams.get("lang")||"").trim().toLowerCase();
+    if (p) { localStorage.setItem("__lang__", p); return p; }
+    const saved = (localStorage.getItem("__lang__")||"").trim().toLowerCase();
+    if (saved) return saved;
+  }catch(_){}
+  return "";
 }
-const LANG = pickLang();
-const t = I18N[LANG];
+
+/* Renvoie une langue supportée (fr/it/es/en) en tenant compte des préférences */
+function detectLang(){
+  const override = getLangOverride();
+  const candidatesRaw = [];
+
+  if (override) candidatesRaw.push(override);
+
+  // 1) navigator.languages (liste de préférences)
+  if (Array.isArray(navigator.languages)) candidatesRaw.push(...navigator.languages);
+
+  // 2) navigator.language / userLanguage (fallback)
+  if (navigator.language) candidatesRaw.push(navigator.language);
+  if (navigator.userLanguage) candidatesRaw.push(navigator.userLanguage);
+
+  // 3) Ajoute quelques fallbacks régionaux usuels si rien n’a matché
+  candidatesRaw.push("en");
+
+  // Normalise -> alias -> test support
+  for (let c of candidatesRaw){
+    if (!c) continue;
+    c = String(c).replace("_","-").toLowerCase();    // ex: en_US -> en-us
+    const alias = LOCALE_ALIASES[c];
+    const primary = c.split("-")[0];                 // ex: en
+    const tryList = [c, alias, primary].filter(Boolean);
+    for (const v of tryList){
+      if (SUPPORTED.includes(v)) return v;
+    }
+  }
+  return "en"; // garde un fallback sûr
+}
+
+/* Expose un setter simple (utile pour un bouton de langue in-app) */
+function setLang(langCode){
+  const lc = String(langCode||"").trim().toLowerCase();
+  const alias = LOCALE_ALIASES[lc] || lc.split("-")[0];
+  const final = SUPPORTED.includes(alias) ? alias : "en";
+  localStorage.setItem("__lang__", final);
+  location.reload();
+}
 
 /* Applique les libellés statiques */
+const LANG = detectLang();
+const t = I18N[LANG] || I18N.en;
+
 (function applyI18N(){
   document.documentElement.lang = LANG;
   document.title = t.title + " — Salento";
   const $ = (id)=>document.getElementById(id);
   $("titleH1").textContent = t.title;
   $("subtitleP").textContent = t.subtitle;
-  $("inspiredP").textContent = t.inspired;
   $("startBtn").textContent = t.start;
   $("hudLabel").textContent = t.hudStars;
   $("musicBtn").textContent = t.musicOff;
