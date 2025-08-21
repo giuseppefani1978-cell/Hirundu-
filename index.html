@@ -268,7 +268,7 @@ function poiName(key){
 }
 
 /* Map d’alias et normalisation des codes (gère tirets/underscores/casse) */
-const SUPPORTED = Object.keys(I18N); // ["fr","it","es","en"]
+const SUPPORTED = Object.keys(I18N);
 const LOCALE_ALIASES = {
   "fr-ca":"fr","fr-ch":"fr","fr-be":"fr","fr-lu":"fr","fr-mc":"fr",
   "it-ch":"it",
@@ -288,38 +288,27 @@ function getLangOverride(){
   return "";
 }
 
-/* Renvoie une langue supportée (fr/it/es/en) en tenant compte des préférences */
+/* Renvoie une langue supportée */
 function detectLang(){
   const override = getLangOverride();
   const candidatesRaw = [];
-
   if (override) candidatesRaw.push(override);
-
-  // 1) navigator.languages (liste de préférences)
   if (Array.isArray(navigator.languages)) candidatesRaw.push(...navigator.languages);
-
-  // 2) navigator.language / userLanguage (fallback)
   if (navigator.language) candidatesRaw.push(navigator.language);
   if (navigator.userLanguage) candidatesRaw.push(navigator.userLanguage);
-
-  // 3) Ajoute quelques fallbacks régionaux usuels si rien n’a matché
   candidatesRaw.push("en");
-
-  // Normalise -> alias -> test support
   for (let c of candidatesRaw){
     if (!c) continue;
-    c = String(c).replace("_","-").toLowerCase();    // ex: en_US -> en-us
+    c = String(c).replace("_","-").toLowerCase();
     const alias = LOCALE_ALIASES[c];
-    const primary = c.split("-")[0];                 // ex: en
+    const primary = c.split("-")[0];
     const tryList = [c, alias, primary].filter(Boolean);
-    for (const v of tryList){
-      if (SUPPORTED.includes(v)) return v;
-    }
+    for (const v of tryList){ if (SUPPORTED.includes(v)) return v; }
   }
-  return "en"; // garde un fallback sûr
+  return "en";
 }
 
-/* Expose un setter simple (utile pour un bouton de langue in-app) */
+/* Setter */
 function setLang(langCode){
   const lc = String(langCode||"").trim().toLowerCase();
   const alias = LOCALE_ALIASES[lc] || lc.split("-")[0];
@@ -442,7 +431,12 @@ const POIS = [
 
 const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 };
 let collected= new Set();
-  
+
+/* ===== Effet de “vibration” (shake) joueur limité à 2 s ===== */
+let hitShake = 0;            // temps restant en secondes
+const HIT_SHAKE_MAX = 2.0;   // clamp dur
+const HIT_SHAKE_DECAY = 2.6; // facteur de décroissance (plus grand => plus court)
+
 /* =========================================================
    Textes POI multi-langues (name + info)
 ========================================================= */
@@ -497,7 +491,7 @@ const POI_TEXT = {
   }
 };
 
-/* Helpers pour récupérer un texte localisé avec fallback FR */
+/* Helpers i18n */
 function poiPack(key){
   const pack = POI_TEXT[LANG] || POI_TEXT.en;
   const fr   = POI_TEXT.fr;
@@ -514,14 +508,14 @@ let currentIdx = 0;
 const UI_BOTTOM = 160;
 const UI_TOP    = 120;
 
-/* Labels éphémères (affichés sur la carte au succès) */
+/* Labels éphémères */
 const floatingLabels = []; // {text,x,y,age,life}
 
 /* Empêche le mouvement pendant messages de succès */
 let inputLocked = false;
 
 /* =========================================================
-   AUDIO (bg loop, success, fail, finale infinie)
+   AUDIO
 ========================================================= */
 let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null, finaleLoopTimer=null;
 function createAudioOnce(){
@@ -580,6 +574,7 @@ function playFinaleLong(){
   chord.forEach(f=> scheduleSquare(f*2, t, 1.0, 0.48));
   finaleLoopTimer = setTimeout(playFinaleLong, 10500);
 }
+
 /* =========================================================
    GAMEPLAY+ : Ennemis & Bonus & Score
 ========================================================= */
@@ -588,7 +583,14 @@ let enemySpawnAt = 0, bonusSpawnAt = 0;
 let collisionCount = 0, bonusCount = 0;
 let playerSlowTimer = 0; // ralentissement temporaire après collision
 
-// vitesse effective du joueur (ralenti si touché)
+/* ---- CONFIG équilibrage ---- */
+const MAX_ENEMIES = 4;         // <= moins d’ennemis à l’écran
+const ENEMY_LIFETIME = 14;     // s, auto-despawn pour limiter la densité
+const ENEMY_BASE_SPAWN = 4200; // ms, spawn de base
+const ENEMY_SPAWN_JITTER = 2600;
+const BONUS_LIFETIME = 4;
+
+/* vitesse effective du joueur (ralenti si touché) */
 function currentSpeed(){
   const base = player.speed;
   const factor = (playerSlowTimer > 0) ? 0.45 : 1.0;
@@ -596,26 +598,28 @@ function currentSpeed(){
 }
 
 function spawnEnemy(){
-  const types = ["jelly","crow"];                     // méduse / corbeau
+  // respect du cap
+  if (enemies.length >= MAX_ENEMIES) return;
+  const types = ["jelly","crow"]; // méduse / corbeau
   const type = (Math.random() < 0.5) ? types[0] : types[1];
   const x = Math.random()*0.9 + 0.05;
   const y = Math.random()*0.9 + 0.05;
-  const maxEnemies = 4; // limite
-  const speed = (type === "jelly" ? 0.06 : 0.10);     // fraction de largeur / sec
+  const speed = (type === "jelly" ? 0.06 : 0.10); // fraction largeur / s
   const dir = Math.random() * Math.PI * 2;
   enemies.push({
     type, x, y,
     vx: Math.cos(dir)*speed,
     vy: Math.sin(dir)*speed,
     r: 0.035,
-    t: 0
+    t: 0,
+    bornAt: performance.now()
   });
 }
 function spawnBonus(){
   bonuses.push({
     x: Math.random()*0.9 + 0.05,
     y: Math.random()*0.9 + 0.05,
-    life: 4, age: 0, r: 0.028, pulse: 0
+    life: BONUS_LIFETIME, age: 0, r: 0.028, pulse: 0
   });
 }
 
@@ -649,14 +653,26 @@ function triggerFireworksShow(){
   const slots=[0,500,1000,1600,2200,3000];
   slots.forEach((t,i)=> setTimeout(()=> launchFireworksBurst((0.2+0.6*Math.random())*W, UI_TOP+(0.1+0.7*Math.random())*(H-UI_BOTTOM-UI_TOP), 40+(i*4), true), t));
 }
-/* MàJ gameplay+ à chaque frame (spawns, mouvements, collisions, bonus) */
+
+/* MàJ gameplay+ à chaque frame */
 function updateGameplayPlus(dt, ox, oy, dw, dh, bx, by){
   const now = performance.now();
   if(!finale){
-    if(now > enemySpawnAt){ spawnEnemy(); enemySpawnAt = now + 3500 + Math.random()*2500; }
-    if(now > bonusSpawnAt){ spawnBonus(); bonusSpawnAt = now + 4200 + Math.random()*3000; }
+    // spawn contrôlé par cap
+    if(now > enemySpawnAt){
+      if (enemies.length < MAX_ENEMIES) spawnEnemy();
+      enemySpawnAt = now + ENEMY_BASE_SPAWN + Math.random()*ENEMY_SPAWN_JITTER;
+    }
+    if(now > bonusSpawnAt){
+      spawnBonus();
+      bonusSpawnAt = now + 4200 + Math.random()*3000;
+    }
   }
-  // Mouvements des ennemis (rebond sur bords 0..1, wobble pour méduse)
+
+  // vieillissement / auto-despawn ennemis
+  enemies = enemies.filter(e => (now - (e.bornAt||now)) < ENEMY_LIFETIME*1000);
+
+  // Mouvements des ennemis (rebond, wobble léger pour méduse)
   const PAD = 0.02;
   for(const e of enemies){
     e.t += dt;
@@ -668,9 +684,12 @@ function updateGameplayPlus(dt, ox, oy, dw, dh, bx, by){
     if(e.x < PAD || e.x > 1-PAD){ e.vx *= -1; e.x = Math.max(PAD, Math.min(1-PAD, e.x)); }
     if(e.y < PAD || e.y > 1-PAD){ e.vy *= -1; e.y = Math.max(PAD, Math.min(1-PAD, e.y)); }
   }
+
   // Collisions joueur <-> ennemis (en pixels)
   const COLLIDE_PX = 36;
   if(playerSlowTimer > 0) playerSlowTimer -= dt;
+  if(hitShake > 0) hitShake = Math.max(0, hitShake - dt * HIT_SHAKE_DECAY);
+
   for(const e of enemies){
     const ex = ox + e.x*dw, ey = oy + e.y*dh;
     const d  = Math.hypot(bx - ex, by - ey);
@@ -679,12 +698,14 @@ function updateGameplayPlus(dt, ox, oy, dw, dh, bx, by){
       player.x = Math.max(0, Math.min(1, player.x + Math.cos(ang)*0.02));
       player.y = Math.max(0, Math.min(1, player.y + Math.sin(ang)*0.02));
       collisionCount++;
-      playerSlowTimer = 1.6;  // ralenti ≈1,6s
+      playerSlowTimer = 1.25;      // ralenti plus court
+      hitShake = Math.min(HIT_SHAKE_MAX, hitShake + 0.6); // démarre/renforce, clamp 2s
       failSfx();
       // écarte un peu l’ennemi pour éviter hit multiples immédiats
       e.x += Math.cos(ang)*0.06; e.y += Math.sin(ang)*0.06;
     }
   }
+
   // Bonus pickup
   for(let i=bonuses.length-1; i>=0; i--){
     const b = bonuses[i];
@@ -711,7 +732,7 @@ function asQuestionFromInfo(info){
 function askQuestionFor(p){
   if(!p) return;
   bdTitle.textContent = "Tarantula";
-  bdText.textContent  = t.ask( poiInfo(p.key) ); // <— info localisée
+  bdText.textContent  = t.ask( poiInfo(p.key) );
   tarTop.classList.add('show');
 }
 
@@ -759,16 +780,12 @@ function refreshStars(){
     im.className='star';
     im.src=starSVG(i<n?"#d26f45":"#f0c9a7");
     starsEl.appendChild(im);
- }
+  }
 }
+
 function drawEnemy(e, ox, oy, dw, dh){
   const x = ox + e.x*dw, y = oy + e.y*dh;
   ctx.save();
-  const maxEnemies = 4; // limite
-if (enemies.length < maxEnemies && Math.random() < 0.02) {
-   enemies.push(createEnemy());
-}
-
   if(e.type === "jelly"){
     // Méduse minimaliste
     ctx.fillStyle = "rgba(123,200,255,0.85)";
@@ -782,7 +799,7 @@ if (enemies.length < maxEnemies && Math.random() < 0.02) {
       ctx.lineWidth = 2; ctx.stroke();
     }
   }else{
-    // Corbeau stylisé
+    // Corbeau stylisé simple
     ctx.translate(x,y);
     ctx.rotate(Math.atan2(e.vy, e.vx));
     ctx.fillStyle = "#242424";
@@ -793,6 +810,7 @@ if (enemies.length < maxEnemies && Math.random() < 0.02) {
   }
   ctx.restore();
 }
+
 function drawBonus(b, ox, oy, dw, dh){
   const x = ox + b.x*dw, y = oy + b.y*dh;
   const r = 10 + Math.sin(b.pulse*6)*2;
@@ -813,73 +831,43 @@ function drawBonus(b, ox, oy, dw, dh){
 refreshStars();
 
 function drawLabels(dt){
-  const MARGIN = 8;           // marge intérieure aux bords de l'écran
-  const PAD    = 6;           // padding de la bulle
-  const LINE_H = 20;          // hauteur approx du texte (16px bold)
-  const ARROW  = 8;           // petite flèche/bec de bulle
-
+  const MARGIN = 8, PAD = 6, LINE_H = 20, ARROW = 8;
   for (let i = floatingLabels.length - 1; i >= 0; i--) {
     const L = floatingLabels[i];
     L.age += dt;
     const tprog = L.age / L.life;
     if (tprog >= 1) { floatingLabels.splice(i, 1); continue; }
-
-    // Fade + légère montée
     const alpha = 1 - tprog;
     const lift  = 10 * tprog;
-
-    // Position “naturelle” (au-dessus, à droite du point)
     let baseX = L.x + 10;
     let baseY = (L.y - 10 - lift);
-
     ctx.save();
     ctx.font = "bold 16px system-ui";
     const text = L.text;
     const textW = Math.ceil(ctx.measureText(text).width);
     const boxW = textW + PAD * 2;
     const boxH = LINE_H + PAD * 2;
-
-    // Bulle initialement au-dessus
     let bx = baseX;
-    let by = baseY - (LINE_H + PAD); // y est la baseline; on monte la bulle
-
-    // Garde les coordonnées d'origine pour le trait de liaison
+    let by = baseY - (LINE_H + PAD);
     const anchorX = L.x;
     const anchorY = L.y - lift;
-
-    // ---- Ajustements bords (clamp + flip bas si trop haut) ----
-    // Si la bulle dépasse en haut, on la met en dessous du point
-    const topLimit = MARGIN; // tu peux utiliser UI_TOP + MARGIN si tu veux éviter d'empiéter sur la HUD
+    const topLimit = MARGIN;
     if (by - PAD < topLimit) {
-      // place sous le point, avec un petit espace pour le bec
-      by = (L.y + 12) + PAD;      // top de la bulle
-      baseY = by + LINE_H;        // baseline en bas de la bulle
+      by = (L.y + 12) + PAD;
+      baseY = by + LINE_H;
     }
-
-    // clamp horizontal
     if (bx + boxW > W - MARGIN) bx = (W - MARGIN) - boxW;
     if (bx < MARGIN)            bx = MARGIN;
-
-    // recalcul baseline si on a clampé bx (le texte suit la bulle)
     const textX = bx + PAD;
     const textY = baseY;
-
-    // ---- Dessin de la bulle + trait de liaison si décalage notable ----
     const moved = (Math.hypot((bx + boxW/2) - anchorX, (by + boxH/2) - anchorY) > 16);
-
     ctx.globalAlpha = Math.max(0, alpha);
-
-    // Ombre légère
     ctx.shadowColor = "rgba(0,0,0,.15)";
     ctx.shadowBlur = 6;
     ctx.shadowOffsetY = 3;
-
-    // Bulle (fond clair)
     ctx.fillStyle = "rgba(255,255,255,0.95)";
     ctx.strokeStyle = "rgba(0,0,0,0.15)";
     ctx.lineWidth = 1.5;
-
-    // arrondis
     const r = 8;
     ctx.beginPath();
     ctx.moveTo(bx + r, by);
@@ -894,18 +882,14 @@ function drawLabels(dt){
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-
-    // Bec (petit triangle vers le point d'ancrage)
     if (moved) {
       ctx.beginPath();
       const midX = Math.max(bx + r, Math.min(bx + boxW - r, anchorX));
       if (by > anchorY) {
-        // bulle en dessous du point -> bec vers le haut
         ctx.moveTo(midX - ARROW, by);
         ctx.lineTo(midX + ARROW, by);
         ctx.lineTo(anchorX, anchorY);
       } else {
-        // bulle au-dessus du point -> bec vers le bas
         ctx.moveTo(midX - ARROW, by + boxH);
         ctx.lineTo(midX + ARROW, by + boxH);
         ctx.lineTo(anchorX, anchorY);
@@ -913,28 +897,22 @@ function drawLabels(dt){
       ctx.closePath();
       ctx.fill();
     }
-
-    // Texte
-    ctx.shadowColor = "transparent"; // pas d'ombre sur le texte
+    ctx.shadowColor = "transparent";
     ctx.fillStyle = "#0e2b4a";
     ctx.strokeStyle = "rgba(255,255,255,.85)";
     ctx.lineWidth = 3;
     ctx.strokeText(text, textX, textY);
     ctx.fillText(text, textX, textY);
-
-    // Trait de liaison additionnel (fin) si moved
     if (moved) {
       ctx.beginPath();
       ctx.strokeStyle = "rgba(14,43,74,.35)";
       ctx.lineWidth = 1;
       ctx.moveTo(anchorX, anchorY);
-      // vers le bord le plus proche de la bulle
       const targetX = Math.max(bx, Math.min(bx + boxW, anchorX));
       const targetY = (by > anchorY) ? by : (by + boxH);
       ctx.lineTo(targetX, targetY);
       ctx.stroke();
     }
-
     ctx.restore();
   }
 }
@@ -986,7 +964,7 @@ function draw(ts){
     }
   }
 
-  // Chemin — n’apparaît qu’à la toute fin (parcours final)
+  // Chemin — n’apparaît qu’à la fin
   if (!finale && collected.size === POIS.length){
     ctx.save();
     ctx.strokeStyle = "#7a4c25";
@@ -994,8 +972,6 @@ function draw(ts){
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.beginPath();
-
-    // On trace le parcours canonique (ordre POIS), pour une jolie “route”.
     const first = POIS[0];
     ctx.moveTo(ox + first.x*dw, oy + first.y*dh);
     for (let i=0;i<POIS.length-1;i++){
@@ -1007,72 +983,77 @@ function draw(ts){
     ctx.stroke();
     ctx.restore();
   }
-// Aracne : calcule d’abord la position/taille du joueur
-const bw = Math.min(160, Math.max(90, dw*player.size));
-const bx = ox + player.x*dw, by = oy + player.y*dh;
 
-// --- GAMEPLAY+ update & draw (sous le joueur)
-if(!finale){
-  updateGameplayPlus(frameDT, ox, oy, dw, dh, bx, by);
-  for(const b of bonuses) drawBonus(b, ox, oy, dw, dh);
-  for(const e of enemies) drawEnemy(e, ox, oy, dw, dh);
-}
+  // Aracne : calcule position/taille du joueur
+  const bw = Math.min(160, Math.max(90, dw*player.size));
+  const bx = ox + player.x*dw, by = oy + player.y*dh;
 
-  // Puis seulement on dessine le joueur pour qu’il passe au-dessus
-if(!finale){
-  if (birdImg.complete && birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2, by-bw/2, bw, bw);
-  else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx,by,bw*0.35,0,Math.PI*2); ctx.fill(); }
-}
+  // --- GAMEPLAY+ update & draw (sous le joueur)
+  if(!finale){
+    updateGameplayPlus(frameDT, ox, oy, dw, dh, bx, by);
+    for(const b of bonuses) drawBonus(b, ox, oy, dw, dh);
+    for(const e of enemies) drawEnemy(e, ox, oy, dw, dh);
+  }
+
+  // --- Effet “shake” visuel du joueur, clampé
+  let shakeX = 0, shakeY = 0;
+  if (hitShake > 0){
+    const a = Math.min(1, hitShake / HIT_SHAKE_MAX); // 0..1
+    const mag = 6 * a; // amplitude max 6 px
+    shakeX = (Math.random()*2-1) * mag;
+    shakeY = (Math.random()*2-1) * mag;
+  }
+
+  // Puis on dessine le joueur par-dessus
+  if(!finale){
+    if (birdImg.complete && birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2+shakeX, by-bw/2+shakeY, bw, bw);
+    else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx+shakeX,by+shakeY,bw*0.35,0,Math.PI*2); ctx.fill(); }
+  }
 
   // Logique de succès / échec — avec ordre de questions aléatoire
-if(!finale && currentIdx < QUEST.length){
-  const p = QUEST[currentIdx];
-  const px = ox + p.x * dw, py = oy + p.y * dh;
-  const onTarget = Math.hypot(bx - px, by - py) < 44;
+  if(!finale && currentIdx < QUEST.length){
+    const p = QUEST[currentIdx];
+    const px = ox + p.x * dw, py = oy + p.y * dh;
+    const onTarget = Math.hypot(bx - px, by - py) < 44;
 
-  if(onTarget && !inputLocked){
-    inputLocked = true;
-    collected.add(p.key);
-    refreshStars();
-    starEmphasis();
+    if(onTarget && !inputLocked){
+      inputLocked = true;
+      collected.add(p.key);
+      refreshStars();
+      starEmphasis();
 
-    // ✅ Succès: utilise la version i18n du nom
-    const nameShort = poiName(p.key);
-    bdTitle.textContent = "Tarantula";
-    bdText.textContent  = t.success(nameShort);
-    tarTop.classList.add('show');
+      const nameShort = poiName(p.key);
+      bdTitle.textContent = "Tarantula";
+      bdText.textContent  = t.success(nameShort);
+      tarTop.classList.add('show');
 
-    // Label éphémère avec le nom i18n
-    floatingLabels.push({ text: nameShort, x: px, y: py - 22, age: 0, life: 2.0 });
+      floatingLabels.push({ text: nameShort, x: px, y: py - 22, age: 0, life: 2.0 });
 
-    currentIdx++;
+      currentIdx++;
 
-    if(currentIdx === QUEST.length){
-      // tout trouvé : la logique de tracé global est gérée ailleurs
-      setTimeout(()=>{
-        beginFinale(bx, by, ox + POIS[POIS.length - 1].x * dw, oy + POIS[POIS.length - 1].y * dh);
-        replayBtn.style.display = 'inline-block';
-        inputLocked = false;
-      }, 1200);
-    }else{
-      // attend 2s puis pose la prochaine question (ordre aléatoire dans QUEST)
-      setTimeout(()=>{
-        askQuestionFor(QUEST[currentIdx]);
-        inputLocked = false;
-      }, 2000);
-    }
-  }else if(!onTarget){
-    const now = performance.now();
-    if(now - lastFailAt > FAIL_COOLDOWN){
-      // feedback si on touche un autre POI non validé
-      for(const q of POIS){
-        if(q.key === p.key || collected.has(q.key)) continue;
-        const qx = ox + q.x * dw, qy = oy + q.y * dh;
-        if(Math.hypot(bx - qx, by - qy) < 44){ failSfx(); lastFailAt = now; break; }
+      if(currentIdx === QUEST.length){
+        setTimeout(()=>{
+          beginFinale(bx, by, ox + POIS[POIS.length - 1].x * dw, oy + POIS[POIS.length - 1].y * dh);
+          replayBtn.style.display = 'inline-block';
+          inputLocked = false;
+        }, 1200);
+      }else{
+        setTimeout(()=>{
+          askQuestionFor(QUEST[currentIdx]);
+          inputLocked = false;
+        }, 2000);
+      }
+    }else if(!onTarget){
+      const now = performance.now();
+      if(now - lastFailAt > FAIL_COOLDOWN){
+        for(const q of POIS){
+          if(q.key === p.key || collected.has(q.key)) continue;
+          const qx = ox + q.x * dw, qy = oy + q.y * dh;
+          if(Math.hypot(bx - qx, by - qy) < 44){ failSfx(); lastFailAt = now; break; }
+        }
       }
     }
   }
-}
 
   // Feux + Danse + Labels
   if(finale || fireworks.length>0){ drawFireworks(); }
@@ -1098,19 +1079,18 @@ function loop(ts){ if(!window.running) return; draw(ts); requestAnimationFrame(l
 function beginFinale(bx,by,lastPx,lastPy){
   finale=true;
   // Score simple : étoiles *100 + bonus *25 - collisions *15
-const stars = collected.size;
-const score = stars*100 + bonusCount*25 - collisionCount*15;
-let rank;
-if(score >= 1000)      rank = "Héros d’Aracne 🕸️";
-else if(score >= 700)  rank = "Explorateur du Salento 🐚";
-else                   rank = "Touriste égaré 🌱";
+  const stars = collected.size;
+  const score = stars*100 + bonusCount*25 - collisionCount*15;
+  let rank;
+  if(score >= 1000)      rank = "Héros d’Aracne 🕸️";
+  else if(score >= 700)  rank = "Explorateur du Salento 🐚";
+  else                   rank = "Touriste égaré 🌱";
 
-// Affiche un récap dans la bulle en intro de finale
-setTimeout(()=>{
-  bdTitle.textContent = "Tarantula";
-  bdText.textContent  = `🏁 Score ${score} — ${rank}\n(⭐ ${stars}, 🎁 ${bonusCount}, 💥 ${collisionCount})`;
-  tarTop.classList.add('show');
-}, 900);
+  setTimeout(()=>{
+    bdTitle.textContent = "Tarantula";
+    bdText.textContent  = `🏁 Score ${score} — ${rank}\n(⭐ ${stars}, 🎁 ${bonusCount}, 💥 ${collisionCount})`;
+    tarTop.classList.add('show');
+  }, 900);
   touch.classList.remove('show');
   tarTop.classList.add('show');
 
@@ -1127,7 +1107,6 @@ setTimeout(()=>{
 }
 
 function resetGame(hideOverlay){
-  // réinitialise ordre aléatoire
   QUEST = shuffle(POIS);
   collected = new Set();
   currentIdx = 0;
@@ -1139,13 +1118,14 @@ function resetGame(hideOverlay){
   refreshStars();
   player.x=0.55; player.y=0.25;
   inputLocked=false;
+
   // Reset gameplay+ (ennemis/bonus/score)
   enemies.length = 0; bonuses.length = 0;
   enemySpawnAt = performance.now() + 800;
   bonusSpawnAt = performance.now() + 1400;
   collisionCount = 0; bonusCount = 0; playerSlowTimer = 0;
+  hitShake = 0;
 
-  // première devinette (random selon QUEST)
   askQuestionFor(QUEST[currentIdx]);
 
   if(musicOn){ if(loopTimer){ clearTimeout(loopTimer); } playPhrase(); }
@@ -1153,7 +1133,7 @@ function resetGame(hideOverlay){
 }
 
 /* =========================================================
-   CONTRÔLES (D-pad uniquement — drag désactivé)
+   CONTRÔLES (D-pad)
 ========================================================= */
 for(const el of document.querySelectorAll('.btn')){
   const dx=parseFloat(el.dataset.dx), dy=parseFloat(el.dataset.dy);
