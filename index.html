@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 <title>Le Vol d’Aracne — Salento (Chasse au trésor)</title>
 <style>
+  #debugBox { pointer-events: none; }  
   /* ====== Base & Canvas ====== */
   html,body{height:100%;margin:0;background:#a9d6f5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
   *{-webkit-tap-highlight-color:transparent}
@@ -757,10 +758,8 @@ function refreshStars(){
     im.className='star';
     im.src=starSVG(i<n?"#d26f45":"#f0c9a7");
     starsEl.appendChild(im);
-  
-  } // <-- ferme refreshStars
-// (optionnel) ; après la fonction si tu aimes
-// refreshStars;
+}
+
 function drawEnemy(e, ox, oy, dw, dh){
   const x = ox + e.x*dw, y = oy + e.y*dh;
   ctx.save();
@@ -1002,18 +1001,18 @@ function draw(ts){
     ctx.stroke();
     ctx.restore();
   }
-// Aracne (calcul taille/position du joueur d’abord)
+// Aracne : calcule d’abord la position/taille du joueur
 const bw = Math.min(160, Math.max(90, dw*player.size));
 const bx = ox + player.x*dw, by = oy + player.y*dh;
 
-// --- GAMEPLAY+ update & draw (avant le joueur pour passer dessous)
+// --- GAMEPLAY+ update & draw (sous le joueur)
 if(!finale){
   updateGameplayPlus(frameDT, ox, oy, dw, dh, bx, by);
   for(const b of bonuses) drawBonus(b, ox, oy, dw, dh);
   for(const e of enemies) drawEnemy(e, ox, oy, dw, dh);
 }
 
-// Puis seulement on dessine le joueur pour qu’il passe au-dessus
+  // Puis seulement on dessine le joueur pour qu’il passe au-dessus
 if(!finale){
   if (birdImg.complete && birdImg.naturalWidth) ctx.drawImage(birdImg, bx-bw/2, by-bw/2, bw, bw);
   else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx,by,bw*0.35,0,Math.PI*2); ctx.fill(); }
