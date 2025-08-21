@@ -352,11 +352,20 @@ window.addEventListener('unhandledrejection',e=>debug(e.reason&&e.reason.message
 ========================================================= */
 const MAP_URL       = "assets/salento-map.PNG" + (window.APP_Q || "");
 const BIRD_URL      = "assets/aracne .PNG"      + (window.APP_Q || "");       /* <-- espace retiré */
-const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");       /* <-- espace retiré */
-// Ennemis
-const jellyfishImg = new Image(); jellyfishImg.src = "assets/jellyfish.PNG";
+const TARANTULA_URL = "assets/tarantula .PNG"   + (window.APP_Q || "");       /* <-- espace 
+// === PATCH 1: sprites ennemis ===
+const CROW_URL   = "assets/crow.PNG"       + (window.APP_Q || "");
+const JELLY_URL  = "assets/jellyfish.PNG"  + (window.APP_Q || "");
 
-const crowImg = new Image(); crowImg.src = "assets/crow.PNG";
+// Images sprites
+const crowImg  = new Image();
+const jellyImg = new Image();
+
+crowImg.onerror  = () => assetFail("Corbeau (sprite)",  CROW_URL);
+jellyImg.onerror = () => assetFail("Méduse (sprite)",   JELLY_URL);
+
+crowImg.src  = CROW_URL;
+jellyImg.src = JELLY_URL;
 
 /* ===== Canvas & UI refs ===== */
 const canvas = document.getElementById('c');
@@ -592,21 +601,24 @@ function currentSpeed(){
 /* ------------------------------
    Spawns
 ------------------------------ */
+// === PATCH 2: types d’ennemis unifiés ===
+const ENEMY = { JELLY: "jelly", CROW: "crow" };
+
 function spawnEnemy(){
   if (enemies.length >= MAX_ENEMIES) return;
-  const type  = (Math.random() < 0.5) ? "jelly" : "crow";
+  const type  = (Math.random() < 0.5) ? ENEMY.JELLY : ENEMY.CROW;
   const x     = Math.random()*0.9 + 0.05;
   const y     = Math.random()*0.9 + 0.05;
-  const speed = (type === "jelly" ? 0.06 : 0.10);
+  const speed = (type === ENEMY.JELLY ? 0.06 : 0.10);
   const dir   = Math.random() * Math.PI * 2;
   enemies.push({
     type, x, y,
     vx: Math.cos(dir)*speed,
     vy: Math.sin(dir)*speed,
-    r: 0.035,
-    t: 0,
+    r:  0.035,
+    t:  0,
     bornAt: performance.now(),
-    state: "normal",         // "normal" | "flee"
+    state: "normal",
     fleeUntil: 0
   });
 }
@@ -810,33 +822,54 @@ function drawStarfish(cx,cy,R){
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
 
-function drawEnemy(e, ox, oy, dw, dh) {
-  const ex = ox + e.x * dw;
-  const ey = oy + e.y * dh;
-  const size = 42;
+// === PATCH 3: rendu des ennemis (sprite + fallback) ===
+function drawEnemy(e, ox, oy, dw, dh){
+  const x = ox + e.x*dw, y = oy + e.y*dh;
+  ctx.save();
 
-  if (e.type === "jellyfish") {
-    if (jellyfishImg.complete && jellyfishImg.naturalWidth) {
-      ctx.drawImage(jellyfishImg, ex - size/2, ey - size/2, size, size);
+  // Transparence s’il est en fuite (déjà dans ton code original)
+  if (e.state === "flee"){
+    const remain = Math.max(0, e.fleeUntil - performance.now()) / 700;
+    ctx.globalAlpha = Math.max(0.12, Math.min(1, remain));
+  }
+
+  const SIZE = 42;
+
+  if (e.type === ENEMY.JELLY){
+    // Sprite si dispo, sinon fallback “méduse” vectoriel existant
+    if (jellyImg.complete && jellyImg.naturalWidth){
+      ctx.drawImage(jellyImg, x - SIZE/2, y - SIZE/2, SIZE, SIZE);
     } else {
-      ctx.fillStyle = "purple";
-      ctx.beginPath();
-      ctx.arc(ex, ey, size/2.5, 0, Math.PI*2);
-      ctx.fill();
+      // Fallback: dôme + tentacules (ton ancien rendu)
+      ctx.fillStyle = "rgba(123,200,255,0.85)";
+      ctx.beginPath(); ctx.arc(x,y,18,Math.PI,0); ctx.fill();
+      ctx.fillRect(x-18,y,36,8);
+      for(let i=0;i<5;i++){
+        ctx.beginPath();
+        ctx.moveTo(x-14+i*7, y+8);
+        ctx.quadraticCurveTo(x-14+i*7, y+22+(i%2?6:-4), x-14+i*7, y+32);
+        ctx.strokeStyle = "rgba(80,150,220,0.9)";
+        ctx.lineWidth = 2; ctx.stroke();
+      }
     }
-  } else if (e.type === "crow") {
-    if (crowImg.complete && crowImg.naturalWidth) {
-      ctx.drawImage(crowImg, ex - size/2, ey - size/2, size, size);
+  } else { // ENEMY.CROW
+    // On oriente le corbeau dans sa direction de vol
+    const ang = Math.atan2(e.vy, e.vx);
+    ctx.translate(x,y); ctx.rotate(ang);
+
+    if (crowImg.complete && crowImg.naturalWidth){
+      ctx.drawImage(crowImg, -SIZE/2, -SIZE/2, SIZE, SIZE);
     } else {
-      ctx.fillStyle = "black";
+      // Fallback triangle “oiseau”
+      ctx.fillStyle = "#242424";
       ctx.beginPath();
-      ctx.moveTo(ex - size/2, ey);
-      ctx.lineTo(ex, ey - size/2);
-      ctx.lineTo(ex + size/2, ey);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(-20,0); ctx.lineTo(10,-8); ctx.lineTo(10,8); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-6,0,10,6,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#ffd400"; ctx.fillRect(10,-2,6,4); // bec
     }
   }
+
+  ctx.restore();
 }
   
 function starSVG(fill){
