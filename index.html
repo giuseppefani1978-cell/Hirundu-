@@ -417,6 +417,8 @@ function assetFail(who,url,showPlaceholder){
   errText.innerHTML += (errText.innerHTML? "<br>":"") + t.assetMissing(who,url);
   if(showPlaceholder) drawSplash(true);
 }
+birdImg.addEventListener('error', ()=>assetFail('Aracne', BIRD_URL));
+spiderImg.addEventListener('error', ()=>assetFail('Tarantula', TARANTULA_URL));
 
 /* =========================================================
    DONNÉES / POIS / JOUEUR
@@ -425,17 +427,18 @@ const SHIFT_COAST = { x:0.045, y:0.026 };
 const SHIFT_EAST  = 0.04;
 
 const POIS = [
-  { key:"otranto",       x:0.86+SHIFT_EAST+SHIFT_COAST.x,          y:0.48+SHIFT_COAST.y,          
-  { key:"portobadisco",  x:0.80+SHIFT_EAST+SHIFT_COAST.x,          y:0.56+SHIFT_COAST.y,          
-  { key:"santacesarea",  x:0.74+SHIFT_EAST+SHIFT_COAST.x+0.010,    y:0.60+SHIFT_COAST.y+0.008,    
-  { key:"castro",        x:0.72+SHIFT_EAST+SHIFT_COAST.x+0.012,    y:0.65+SHIFT_COAST.y+0.008,    
-  { key:"ciolo",         x:0.66+SHIFT_EAST+SHIFT_COAST.x+0.070,    y:0.78+SHIFT_COAST.y+0.006,    
-  { key:"leuca",         x:0.64+SHIFT_COAST.x+0.1,                 y:0.90+SHIFT_COAST.y,          
-  { key:"gallipoli",     x:0.27,                                   y:0.62,                        
-  { key:"portocesareo",  x:0.22,                                   y:0.46,                        
-  { key:"nardo",         x:0.38,                                   y:0.50,                        
-  { key:"lecce",         x:0.53,                                   y:0.28,                        
+  { key:"otranto",       x:0.86+SHIFT_EAST+SHIFT_COAST.x,       y:0.48+SHIFT_COAST.y },
+  { key:"portobadisco",  x:0.80+SHIFT_EAST+SHIFT_COAST.x,       y:0.56+SHIFT_COAST.y },
+  { key:"santacesarea",  x:0.74+SHIFT_EAST+SHIFT_COAST.x+0.010, y:0.60+SHIFT_COAST.y+0.008 },
+  { key:"castro",        x:0.72+SHIFT_EAST+SHIFT_COAST.x+0.012, y:0.65+SHIFT_COAST.y+0.008 },
+  { key:"ciolo",         x:0.66+SHIFT_EAST+SHIFT_COAST.x+0.070, y:0.78+SHIFT_COAST.y+0.006 },
+  { key:"leuca",         x:0.64+SHIFT_COAST.x+0.10,             y:0.90+SHIFT_COAST.y },
+  { key:"gallipoli",     x:0.27,                                y:0.62 },
+  { key:"portocesareo",  x:0.22,                                y:0.46 },
+  { key:"nardo",         x:0.38,                                y:0.50 },
+  { key:"lecce",         x:0.53,                                y:0.28 }
 ];
+
 const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 };
 let collected= new Set();
   
