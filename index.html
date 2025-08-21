@@ -12,55 +12,11 @@
   .game{position:relative;flex:1;overflow:hidden}
   canvas{width:100%;height:100%;display:block;background:#bfe2f8;touch-action:none}
 
-  /* ====== Overlay (Start + Intro) ====== */
+  /* ====== Overlay (Start) ====== */
   .overlay{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    background:rgba(169,214,245,.84);backdrop-filter:blur(3px);z-index:50;flex-direction:column;gap:12px
+    background:rgba(169,214,245,.84);backdrop-filter:blur(3px);z-index:50
   }
-  /* Intro scene */
-  .introScene{
-    position:relative;width:min(900px,92vw);height:min(42vh,360px);
-    border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;overflow:hidden;
-    box-shadow:0 10px 26px rgba(0,0,0,.18)
-  }
-  .ground{
-    position:absolute;left:0;right:0;bottom:0;height:34%;
-    background:linear-gradient(#f7f3e3,#e8dfc4);
-    border-top:1px solid #d8c995
-  }
-  .introChar{
-    position:absolute;width:120px;height:120px;bottom:22%;
-    display:flex;align-items:center;justify-content:center;
-    transition:transform 1.3s ease-in-out,left 1.3s ease-in-out,right 1.3s ease-in-out;
-    will-change:transform,left,right;
-    animation:floatY 2.8s ease-in-out infinite;
-    filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))
-  }
-  .introChar img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
-  .introChar.bird{left:-160px;transform:scale(1)}
-  .introChar.spider{right:-160px;transform:scale(1)}
-  /* phase 1: entrée */
-  .introScene.enter .introChar.bird{left:18%}
-  .introScene.enter .introChar.spider{right:18%}
-  /* phase 2: rapprochement */
-  .introScene.meet .introChar.bird{left:36%;transform:scale(1.05) rotate(-3deg)}
-  .introScene.meet .introChar.spider{right:36%;transform:scale(1.05) rotate(3deg)}
-  /* phase 3: petite joie */
-  .introScene.cheer .introChar{animation:floatY 1.6s ease-in-out infinite}
-  @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-
-  /* Petites bulles BD */
-  .bubble{
-    position:absolute;max-width:44ch;background:#fff;border:1px solid #bbb;border-radius:10px;
-    padding:6px 8px;font:14px/1.35 system-ui;box-shadow:0 4px 10px rgba(0,0,0,.12);opacity:0;transform:translateY(6px);transition:all .35s ease
-  }
-  .bubble.show{opacity:1;transform:translateY(0)}
-  .bubble:after{content:"";position:absolute;bottom:-8px;left:18px;border:8px solid transparent;border-top-color:#fff;filter:drop-shadow(0 -1px 0 #bbb)}
-  .bBird{left:16%;bottom:60%}
-  .bSpider{right:16%;bottom:60%}
-  .bSpider:after{left:auto;right:18px}
-
-  /* Card de démarrage */
   .card{
     width:min(560px,92vw);border:2px solid #c8b37a;border-radius:14px;background:#fffdf5;
     box-shadow:0 10px 26px rgba(0,0,0,.18);padding:18px;text-align:center
@@ -68,22 +24,33 @@
   .card h1{margin:0 0 6px 0;font-size:24px}
   .card p{margin:6px 0 14px 0;opacity:.82}
   .card button{border:1px solid #c8b37a;background:#ffe8a6;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
-  .heroes{display:flex;justify-content:center;gap:16px;margin:10px 0 4px 0}
-  .heroes img{width:72px;height:72px;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges}
+  /* Intro anim — small CSS-only cinematic */
+  .heroes{display:flex;justify-content:center;gap:16px;margin:10px 0 8px 0;position:relative}
+  .heroes img{
+    width:72px;height:72px;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges;
+    animation:floatY 2.4s ease-in-out infinite, pulse 3.2s ease-in-out infinite;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,.25));
+  }
+  .heroes img#heroAr{animation-delay:.0s,.0s}
+  .heroes img#heroTa{animation-delay:.6s,.3s}
+  @keyframes floatY{0%{transform:translateY(0)}50%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 
-  /* ====== HUD (réduit à ~moitié) ====== */
+  .inspiration{font-size:.92em;font-style:italic;color:#555;margin:2px 0 16px}
+
+  /* ====== HUD — étroit (≈ moitié) ====== */
   .hud{
     position:absolute;left:8px;top:50%;transform:translateY(-50%);
     background:rgba(255,248,220,.96);border:2px solid #c8b37a;border-radius:10px;
     padding:8px 6px;font-size:14px;z-index:22;width:42px;
     display:flex;flex-direction:column;align-items:center;gap:6px
   }
-  .hud h3{margin:0;font-size:14px;line-height:1}
+  .hud h3{margin:0;font-size:14px;line-height:1;text-align:center}
   .hud .score{margin:0;font-weight:800;font-size:13px;line-height:1.1}
   .stars{display:flex;flex-direction:column;gap:4px;margin-top:2px;align-items:center}
   .star{width:15px;height:15px;opacity:.95}
 
-  /* ====== Bulle Tarantula — TOUT en haut à GAUCHE ====== */
+  /* ====== Bulle Tarantula — fixée en haut-gauche ====== */
   .tarTop{
     position:absolute;display:none;align-items:flex-start;gap:8px;z-index:40;max-width:calc(100vw - 16px);
     left:8px; top:8px;
@@ -131,24 +98,13 @@
        style="position:fixed;right:8px;bottom:8px;z-index:9999;
               background:rgba(0,0,0,.55);color:#fff;font:12px system-ui;
               padding:4px 6px;border-radius:6px;pointer-events:none">
-    v2025-08-20-d • host=<span id="__host__"></span>
+    v2025-08-20-e • host=<span id="__host__"></span>
   </div>
 
   <div class="wrap">
     <div class="game">
-      <!-- ===== Overlay Start + Intro animée ===== -->
+      <!-- ===== Overlay Start (avec mini “cinématique”) ===== -->
       <div class="overlay" id="overlay">
-
-        <!-- Scène animée -->
-        <div class="introScene" id="introScene">
-          <div class="introChar bird" id="introBird"><img id="introBirdImg" alt="Aracne"></div>
-          <div class="introChar spider" id="introSpider"><img id="introSpiderImg" alt="Tarantula"></div>
-          <div class="bubble bBird" id="bubbleBird">Prêt·e pour l’aventure&nbsp;?</div>
-          <div class="bubble bSpider" id="bubbleSpider">Collecte 10 étoiles pour révéler le Salento&nbsp;!</div>
-          <div class="ground"></div>
-        </div>
-
-        <!-- Carte de démarrage -->
         <div class="card" id="overlayCard">
           <div class="heroes">
             <img id="heroAr" alt="Aracne">
@@ -156,6 +112,7 @@
           </div>
           <h1 id="titleH1">Le Vol d’Aracne</h1>
           <p id="subtitleP">Collecte les 10 étoiles et découvre 10 lieux secrets du Salento.</p>
+          <p class="inspiration" id="inspiredP">Inspiré par le fameux roman</p>
           <button id="startBtn" type="button" onclick="window.startGame && window.startGame()">Démarrer</button>
         </div>
       </div>
@@ -196,7 +153,7 @@
 
   <!-- ====== VERSION & CACHE-BUSTER ====== -->
   <script>
-    window.APP_VERSION = "v2025-08-20-d";
+    window.APP_VERSION = "v2025-08-20-e";
     window.APP_Q = "?v=" + window.APP_VERSION;
     (function(){ var s=document.getElementById("__host__"); if(s) s.textContent = location.hostname; console.log("[BUILD]", window.APP_VERSION, location.hostname); })();
   </script>
@@ -230,7 +187,7 @@
       if (!btn) return;
       btn.addEventListener('click', function(){
         var url = new URL(location.href);
-        url.searchParams.set('t', Date.now());  // force un GET neuf
+        url.searchParams.set('t', Date.now());
         location.replace(url.toString());
       });
     })();
@@ -244,6 +201,7 @@ const I18N = {
   fr: {
     title: "Le Vol d’Aracne",
     subtitle: "Collecte les 10 étoiles et découvre 10 lieux secrets du Salento.",
+    inspired: "Inspiré par le fameux roman",
     start: "Démarrer",
     hudStars: "Étoiles",
     musicOn: "⏹️ Musique",
@@ -258,6 +216,7 @@ const I18N = {
   it: {
     title: "Il Volo di Aracne",
     subtitle: "Raccogli le 10 stelle e scopri 10 luoghi segreti del Salento.",
+    inspired: "Ispirato al celebre romanzo",
     start: "Avvia",
     hudStars: "Stelle",
     musicOn: "⏹️ Musica",
@@ -272,6 +231,7 @@ const I18N = {
   es: {
     title: "El Vuelo de Aracne",
     subtitle: "Recoge las 10 estrellas y descubre 10 lugares secretos del Salento.",
+    inspired: "Inspirado en la famosa novela",
     start: "Empezar",
     hudStars: "Estrellas",
     musicOn: "⏹️ Música",
@@ -286,11 +246,12 @@ const I18N = {
   en: {
     title: "Aracne’s Flight",
     subtitle: "Collect 10 stars and discover 10 secret places in Salento.",
+    inspired: "Inspired by the famous novel",
     start: "Start",
     hudStars: "Stars",
     musicOn: "⏹️ Music",
     musicOff: "🎵 Music",
-    replay: "⏹ Replay",
+    replay: "⟲ Replay",
     ask: (info) => `Tell me, where is ${info}?`,
     success: (name) => `Great, that’s exactly it: ${name}!`,
     errTitle: "⚠️ Asset issue",
@@ -318,19 +279,12 @@ const t = I18N[LANG];
   const $ = (id)=>document.getElementById(id);
   $("titleH1").textContent = t.title;
   $("subtitleP").textContent = t.subtitle;
+  $("inspiredP").textContent = t.inspired;
   $("startBtn").textContent = t.start;
   $("hudLabel").textContent = t.hudStars;
   $("musicBtn").textContent = t.musicOff;
   $("replayFloat").textContent = t.replay;
   $("errTitle").textContent = t.errTitle;
-
-  // Ajuste les bulles d'intro selon la langue (simple, non POI)
-  const b1 = (LANG==="it")?"Pronti all’avventura?":(LANG==="es")?"¿Listo para la aventura?":(LANG==="en")?"Ready for adventure?":"Prêt·e pour l’aventure ?";
-  const b2 = (LANG==="it")?"Raccogli 10 stelle per svelare il Salento!":(LANG==="es")?"¡Recoge 10 estrellas para revelar el Salento!":(LANG==="en")?"Collect 10 stars to reveal Salento!":"Collecte 10 étoiles pour révéler le Salento !";
-  const bubbleBird = document.getElementById("bubbleBird");
-  const bubbleSpider = document.getElementById("bubbleSpider");
-  if(bubbleBird) bubbleBird.textContent = b1;
-  if(bubbleSpider) bubbleSpider.textContent = b2;
 })();
 
 /* =========================================================
@@ -380,32 +334,11 @@ const musicBtn  = document.getElementById('musicBtn');
 const replayBtn = document.getElementById('replayFloat');
 const hudEl     = document.getElementById('hud');
 tarAvatar.src   = TARANTULA_URL;
-/* Avatars écran de démarrage + intro */
+/* Avatars sur l’écran de démarrage */
 document.getElementById('heroAr').src = BIRD_URL;
 document.getElementById('heroTa').src = TARANTULA_URL;
-document.getElementById('introBirdImg').src = BIRD_URL;
-document.getElementById('introSpiderImg').src = TARANTULA_URL;
 
-/* ====== Intro timeline ====== */
-(function runIntro(){
-  const scene = document.getElementById('introScene');
-  const b1 = document.getElementById('bubbleBird');
-  const b2 = document.getElementById('bubbleSpider');
-  if(!scene) return;
-  // phase 1: entrée
-  setTimeout(()=> scene.classList.add('enter'), 300);
-  // phase 2: rapprochement
-  setTimeout(()=> scene.classList.add('meet'), 1600);
-  // bulles
-  setTimeout(()=> { b1.classList.add('show'); }, 2000);
-  setTimeout(()=> { b2.classList.add('show'); }, 2450);
-  // phase 3: joie
-  setTimeout(()=> scene.classList.add('cheer'), 3200);
-})();
-
-/* =========================================================
-   Resize
-========================================================= */
+/* Resize */
 let W=0,H=0,dpr=1;
 function resize(){
   dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -448,19 +381,23 @@ const POIS = [
 ];
 
 const player   = { x:0.55, y:0.25, speed:0.0048, size:0.11 };
-const collected= new Set();
+let collected= new Set();
+/* L’ordre de questions aléatoire à chaque partie */
+let QUEST = [];
 let currentIdx = 0;
 
-/* Réserves UI */
+/* UI réserves */
 const UI_BOTTOM = 160;
 const UI_TOP    = 120;
 
-/* Labels éphémères */
+/* Labels éphémères (affichés sur la carte au succès) */
 const floatingLabels = []; // {text,x,y,age,life}
+
+/* Empêche le mouvement pendant messages de succès */
 let inputLocked = false;
 
 /* =========================================================
-   AUDIO
+   AUDIO (bg loop, success, fail, finale infinie)
 ========================================================= */
 let audioCtx=null, masterGain=null, musicOn=false, loopTimer=null, finaleLoopTimer=null;
 function createAudioOnce(){
@@ -552,7 +489,7 @@ function triggerFireworksShow(){
 }
 
 /* =========================================================
-   BULLE / QUESTIONS (sans nom)
+   Bulle / Questions
 ========================================================= */
 function asQuestionFromInfo(info){
   const s=((info||"ce lieu")+"").trim();
@@ -564,6 +501,23 @@ function askQuestionFor(p){
   bdText.textContent=asQuestionFromInfo(p.info);
   tarTop.classList.add('show');
 }
+function showTarantulaSuccess(p){
+  bdTitle.textContent="Tarantula";
+  bdText.textContent=t.success(p.name.split(" — ")[0]);
+  tarTop.classList.add('show');
+}
+
+/* =========================================================
+   Utils: shuffle (Fisher–Yates)
+========================================================= */
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
 
 /* =========================================================
    RENDU
@@ -571,12 +525,16 @@ function askQuestionFor(p){
 window.running=false;
 let lastTS=0, frameDT=0, lastFailAt=0; const FAIL_COOLDOWN=900;
 
+/* ====== Zoom global de la carte ====== */
+const MAP_ZOOM = 1.30; // ≈ +30%
+
 function drawStarfish(cx,cy,R){
   ctx.save(); ctx.shadowColor='rgba(0,0,0,.2)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
   ctx.beginPath(); const pts=5,inner=R*0.45;
   for(let i=0;i<pts*2;i++){const ang=(Math.PI/pts)*i - Math.PI/2; const r=(i%2===0)?R:inner; const x=cx+Math.cos(ang)*r; const y=cy+Math.sin(ang)*r; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);}
   ctx.closePath(); ctx.fillStyle='#d26f45'; ctx.strokeStyle='#8c3f28'; ctx.lineWidth=3; ctx.fill(); ctx.stroke(); ctx.restore();
 }
+
 function starSVG(fill){ const f=fill||"#d26f45"; return "data:image/svg+xml;base64,"+btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 5 L61 36 L94 36 L67 55 L77 88 L50 68 L23 88 L33 55 L6 36 L39 36 Z' fill='${f}' stroke='#8c3f28' stroke-width='4' stroke-linejoin='round'/></svg>`); }
 function refreshStars(){
   const n = collected.size;
@@ -611,9 +569,6 @@ function drawLabels(dt){
   }
 }
 
-/* ====== Zoom global de la carte (+30%) ====== */
-const MAP_ZOOM = 1.30;
-
 function draw(ts){
   if(ts){
     if(!lastTS) lastTS=ts;
@@ -635,14 +590,14 @@ function draw(ts){
 
   const baseScale = Math.min(availW/mw, availH/mh);
   const scale = baseScale * MAP_ZOOM;
-  const dw=mw*scale, dh=mh*scale;
 
+  const dw=mw*scale, dh=mh*scale;
   const ox=(W-dw)/2;
   const oy=UI_TOP + (availH - dh)/2;
 
   ctx.clearRect(0,0,W,H);
 
-  // Carte
+  // Carte / Map
   if (mapImg.complete && mapImg.naturalWidth) ctx.drawImage(mapImg,ox,oy,dw,dh);
   else { ctx.fillStyle="#bfe2f8"; ctx.fillRect(ox,oy,dw,dh); ctx.fillStyle="#0e2b4a"; ctx.font="16px system-ui"; ctx.fillText(t.mapNotLoaded(MAP_URL), ox+14, oy+24); }
 
@@ -661,8 +616,8 @@ function draw(ts){
     }
   }
 
-  // Chemin — uniquement entre POI déjà découverts (>=2), pas avant
-  if (!finale && collected.size >= 2) {
+  // Chemin — n’apparaît qu’à la toute fin (parcours final)
+  if (!finale && collected.size === POIS.length){
     ctx.save();
     ctx.strokeStyle = "#7a4c25";
     ctx.lineWidth = 4;
@@ -670,20 +625,16 @@ function draw(ts){
     ctx.lineJoin = "round";
     ctx.beginPath();
 
-    let started = false;
-    for (let i = 0; i < POIS.length - 1; i++) {
-      const a = POIS[i], b = POIS[i + 1];
-      if (!collected.has(a.key) || !collected.has(b.key)) continue;
-
-      const ax = ox + a.x * dw, ay = oy + a.y * dh;
-      const bx = ox + b.x * dw, by = oy + b.y * dh;
-      const mx = (ax + bx) / 2, my = (ay + by) / 2 + ((i % 2 ? 1 : -1) * 8);
-
-      if (!started) { ctx.moveTo(ax, ay); started = true; }
-      ctx.quadraticCurveTo(mx, my, bx, by);
+    // On trace le parcours canonique (ordre POIS), pour une jolie “route”.
+    const first = POIS[0];
+    ctx.moveTo(ox + first.x*dw, oy + first.y*dh);
+    for (let i=0;i<POIS.length-1;i++){
+      const a=POIS[i], b=POIS[i+1];
+      const ax=ox+a.x*dw, ay=oy+a.y*dh, bx=ox+b.x*dw, by=oy+b.y*dh;
+      const mx=(ax+bx)/2, my=(ay+by)/2 + ((i%2?1:-1)*8);
+      ctx.quadraticCurveTo(mx,my,bx,by);
     }
-
-    if (started) ctx.stroke();
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -695,43 +646,42 @@ function draw(ts){
     else { ctx.fillStyle="#333"; ctx.beginPath(); ctx.arc(bx,by,bw*0.35,0,Math.PI*2); ctx.fill(); }
   }
 
-  // Logique de succès / échec
-  if(!finale && currentIdx < POIS.length){
-    const p=POIS[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
+  // Logique de succès / échec — avec ordre de questions aléatoire
+  if(!finale && currentIdx < QUEST.length){
+    const p=QUEST[currentIdx]; const px=ox+p.x*dw, py=oy+p.y*dh;
     const onTarget = Math.hypot(bx-px,by-py)<44;
 
     if(onTarget && !inputLocked){
       inputLocked = true;
       collected.add(p.key); refreshStars();
       starEmphasis();
+      showTarantulaSuccess(p);
 
-      const nameShort = (p.name.split(" — ")[0]);
-      bdTitle.textContent="Tarantula";
-      bdText.textContent = t.success(nameShort);
-      tarTop.classList.add('show');
-
-      floatingLabels.push({ text: nameShort, x:px, y:py-22, age:0, life:2.0 });
+      // Label éphémère
+      floatingLabels.push({ text: p.name.split(" — ")[0], x:px, y:py-22, age:0, life:2.0 });
 
       currentIdx++;
 
-      if(currentIdx===POIS.length){
+      if(currentIdx===QUEST.length){
+        // tout trouvé : on n’affiche le parcours qu’à la prochaine frame (déjà gérée)
         setTimeout(()=>{
           beginFinale(bx,by, ox+POIS[POIS.length-1].x*dw, oy+POIS[POIS.length-1].y*dh);
           replayBtn.style.display='inline-block';
           inputLocked = false;
         }, 1200);
       }else{
+        // attend 2s puis pose la prochaine question (random suivante)
         setTimeout(()=>{
-          askQuestionFor(POIS[currentIdx]);
+          askQuestionFor(QUEST[currentIdx]);
           inputLocked = false;
         }, 2000);
       }
     }else if(!onTarget){
       const now = performance.now();
       if(now - lastFailAt > FAIL_COOLDOWN){
-        for(let i=0;i<POIS.length;i++){
-          if(i===currentIdx) continue;
-          const q=POIS[i]; if(collected.has(q.key)) continue;
+        // feedback “mauvais POI” si on tombe sur un autre point non-encore validé
+        for(const q of POIS){
+          if(q.key===p.key || collected.has(q.key)) continue;
           const qx=ox+q.x*dw, qy=oy+q.y*dh;
           if(Math.hypot(bx-qx,by-qy)<44){ failSfx(); lastFailAt = now; break; }
         }
@@ -776,15 +726,24 @@ function beginFinale(bx,by,lastPx,lastPy){
   triggerFireworksShow();
   window.__fwInterval__ = setInterval(triggerFireworksShow, 4500);
 }
+
 function resetGame(hideOverlay){
+  // réinitialise ordre aléatoire
+  QUEST = shuffle(POIS);
+  collected = new Set();
+  currentIdx = 0;
+
   finale=false; fireworks.length=0; dancePhase=0; finaleTimer=0; finaleZoom=1;
   if(window.__fwInterval__){ clearInterval(window.__fwInterval__); window.__fwInterval__=null; }
   if(finaleLoopTimer){ clearTimeout(finaleLoopTimer); finaleLoopTimer=null; }
   replayBtn.style.display='none';
-  collected.clear(); currentIdx=0; refreshStars();
+  refreshStars();
   player.x=0.55; player.y=0.25;
   inputLocked=false;
-  askQuestionFor(POIS[currentIdx]);
+
+  // première devinette (random selon QUEST)
+  askQuestionFor(QUEST[currentIdx]);
+
   if(musicOn){ if(loopTimer){ clearTimeout(loopTimer); } playPhrase(); }
   if(hideOverlay){ const ov=document.getElementById('overlay'); ov.style.display='none'; }
 }
@@ -828,7 +787,7 @@ function drawSplash(force){
 }
 
 /* Première devinette au chargement (overlay visible) */
-askQuestionFor(POIS[0]);
+askQuestionFor(POIS[0]); // placeholder visuel avant start (texte sur la bulle)
 </script>
 </body>
 </html>
